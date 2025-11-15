@@ -13,7 +13,16 @@
 import NavBar from './components/NavBar.vue'
 import Footer from './components/Footer.vue'
 import CartSidebar from './components/CartSidebar.vue'
+import { onMounted } from 'vue'
+import { useAuthStore } from './stores/authStore'
+
+const authStore = useAuthStore()
+
+onMounted(() => {
+  authStore.initializeAuth()
+})
 </script>
+
 
 <style scoped>
 .app-container {

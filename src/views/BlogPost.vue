@@ -1,96 +1,56 @@
 <template>
-  <div class="blog-post" v-if="post">
-    <div class="hero" :style="{ backgroundImage: `url(https://via.placeholder.com/1200x280?text=${encodeURIComponent(post.title)})` }">
-      <div class="container hero-inner">
-        <router-link to="/blog" class="back-link">← Back to Blog</router-link>
-        <h1>{{ post.title }}</h1>
-        <p class="meta">
-          <span>✍️ {{ post.author }}</span>
-          <span>•</span>
-          <span>📅 {{ post.date }}</span>
-          <span>•</span>
-          <span class="category">🏷️ {{ post.category }}</span>
-        </p>
+  <div>
+    <section class="hero" :style="{ backgroundImage: post && post.image ? 'url(' + post.image + ')' : 'linear-gradient(90deg,#111827,#1f2937)' }">
+      <div class="hero-inner">
+        <div class="container">
+          <router-link class="back-link" :to="{ name: 'Blog' }">← Back to Blog</router-link>
+          <h1 v-if="post">{{ post.title }}</h1>
+          <div v-if="post" class="meta">By {{ post.author || post.authorName || 'Admin' }} • {{ post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '' }}</div>
+        </div>
       </div>
-    </div>
+    </section>
 
     <div class="container content">
-      <article class="card article">
-        <p class="excerpt">{{ post.excerpt }}</p>
-        <div class="body">
-          <p v-for="(p, i) in post.body" :key="i">{{ p }}</p>
-        </div>
-      </article>
+      <main>
+        <div v-if="loading">Loading post...</div>
+        <div v-else-if="!post">Post not found.</div>
 
-      <aside class="sidebar card">
-        <h3>Related posts</h3>
+        <article v-else class="article">
+          <div class="excerpt" v-if="post.excerpt">{{ post.excerpt }}</div>
+          <div class="body" v-html="post.content"></div>
+        </article>
+      </main>
+
+      <aside class="sidebar">
+        <h3>Related</h3>
         <ul class="related">
-          <li v-for="rel in related" :key="rel.id">
-            <router-link :to="`/blog/${rel.id}`">{{ rel.title }}</router-link>
+          <li v-for="r in related" :key="r._id">
+            <router-link :to="{ name: 'BlogPost', params: { id: r._id } }">{{ r.title }}</router-link>
           </li>
         </ul>
       </aside>
     </div>
   </div>
-
-  <div v-else class="container">
-    <p>Post not found.</p>
-    <router-link to="/blog" class="btn btn-primary">Back to Blog</router-link>
-  </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { onMounted, computed } from 'vue';
+import { useRoute } from 'vue-router';
+import { useBlogStore } from '../stores/blogStore';
 
-const route = useRoute()
+const route = useRoute();
+const blogStore = useBlogStore();
+const postId = computed(() => route.params.id);
 
-// Seeded posts (aligns with your sample data)
-const blogPosts = [
-  {
-    id: 1,
-    title: 'Top 5 Common Phone Problems and How to Fix Them',
-    category: 'Tech Tips',
-    author: 'Kwame Mensah',
-    date: '2025-10-15',
-    excerpt: 'Discover common smartphone issues users face daily and quick fixes you can try.',
-    body: [
-      'Screen cracks, battery drain, and charging port faults are among the most common phone issues.',
-      'Before visiting a repair shop, try basic steps like restarting, updating software, and cleaning ports.',
-      'If DIY fails, consult a professional to avoid worsening hardware damage.'
-    ]
-  },
-  {
-    id: 2,
-    title: 'MacBook vs Windows Laptop: Which is Better for Students?',
-    category: 'Product Reviews',
-    author: 'Ama Adjei',
-    date: '2025-10-20',
-    excerpt: 'A thorough comparison of Mac and Windows laptops to help students decide.',
-    body: [
-      'Consider ecosystem, budget, and required apps when choosing a laptop.',
-      'Windows offers broader hardware choices, while Mac excels in battery life and build quality.',
-      'Always check student discounts and warranty options in Ghana.'
-    ]
-  },
-  {
-    id: 3,
-    title: 'How to Start a Phone Repair Business in Ghana',
-    category: 'Repair Tutorials',
-    author: 'Kofi Asante',
-    date: '2025-10-25',
-    excerpt: 'Step-by-step guide for licensing, tooling, and marketing your repair venture.',
-    body: [
-      'Register your business, pick a good location, and invest in essential repair tools.',
-      'Build trust with fair pricing, transparent diagnosis, and quality parts.',
-      'Use social media, WhatsApp Business, and local SEO to attract customers.'
-    ]
-  }
-]
+onMounted(() => {
+  blogStore.fetchPostById(postId.value);
+});
 
-const postId = computed(() => Number(route.params.id))
-const post = computed(() => blogPosts.find(p => p.id === postId.value))
-const related = computed(() => blogPosts.filter(p => p.id !== postId.value).slice(0, 3))
+const post = computed(() => blogStore.post);
+const loading = computed(() => blogStore.loading);
+const related = computed(() =>
+  blogStore.posts.filter(p => p._id !== postId.value).slice(0, 3)
+);
 </script>
 
 <style scoped>

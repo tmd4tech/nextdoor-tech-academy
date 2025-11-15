@@ -9,59 +9,35 @@
 
         <h2>Create Your Account</h2>
 
+        <!-- Registration Form -->
         <form @submit.prevent="handleRegister">
           <div class="form-group">
             <label>Full Name</label>
-            <input 
-              type="text" 
-              v-model="fullName" 
-              placeholder="Enter your full name"
-              required
-            >
+            <input type="text" v-model="fullName" placeholder="Enter your full name" required />
           </div>
 
           <div class="form-group">
             <label>Email Address</label>
-            <input 
-              type="email" 
-              v-model="email" 
-              placeholder="Enter your email"
-              required
-            >
+            <input type="email" v-model="email" placeholder="Enter your email" required />
           </div>
 
           <div class="form-group">
             <label>Phone Number</label>
-            <input 
-              type="tel" 
-              v-model="phone" 
-              placeholder="Enter your phone number"
-              required
-            >
+            <input type="tel" v-model="phone" placeholder="Enter your phone number" required />
           </div>
 
           <div class="form-group">
             <label>Password</label>
-            <input 
-              type="password" 
-              v-model="password" 
-              placeholder="Enter a strong password"
-              required
-            >
+            <input type="password" v-model="password" placeholder="Enter a strong password" required />
           </div>
 
           <div class="form-group">
             <label>Confirm Password</label>
-            <input 
-              type="password" 
-              v-model="confirmPassword" 
-              placeholder="Confirm your password"
-              required
-            >
+            <input type="password" v-model="confirmPassword" placeholder="Confirm your password" required />
           </div>
 
           <button type="submit" class="btn btn-primary btn-block">
-            Create Account
+            {{ loading ? "Creating Account..." : "Create Account" }}
           </button>
         </form>
 
@@ -69,20 +45,28 @@
           Already have an account? <router-link to="/login">Login here</router-link>
         </p>
 
-        <div v-if="error" class="error-message">
-          {{ error }}
+        <div class="divider">Or</div>
+
+        <!-- Social Registration -->
+        <div class="social-login">
+          <button class="social-btn facebook" @click="registerWithFacebook">
+            <span class="social-icon">f</span> Register with Facebook
+          </button>
+
+          <button class="social-btn google" @click="registerWithGoogle">
+            <span class="social-icon">G</span> Register with Google
+          </button>
         </div>
 
-        <div v-if="success" class="success-message">
-          {{ success }}
-        </div>
+        <div v-if="error" class="error-message">{{ error }}</div>
+        <div v-if="success" class="success-message">{{ success }}</div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 
@@ -97,7 +81,9 @@ const confirmPassword = ref('')
 const error = ref('')
 const success = ref('')
 
-const handleRegister = () => {
+const loading = computed(() => authStore.loading)
+
+const handleRegister = async () => {
   error.value = ''
   success.value = ''
 
@@ -116,24 +102,49 @@ const handleRegister = () => {
     return
   }
 
-  if (authStore.register(fullName.value, email.value, phone.value, password.value)) {
-    success.value = 'Account created successfully! Redirecting to dashboard...'
-    setTimeout(() => {
-      router.push('/')
-    }, 2000)
+  const result = await authStore.register(fullName.value, email.value, phone.value, password.value)
+  
+  if (result) {
+    success.value = 'Account created successfully! Redirecting...'
+    setTimeout(() => router.push('/'), 2000)
   } else {
-    error.value = 'Email already exists. Please use a different email.'
+    error.value = authStore.error || 'Registration failed. Email might already exist.'
   }
+}
+
+// ---------- Social Register/Login ----------
+const registerWithGoogle = () => {
+  const width = 500
+  const height = 600
+  const left = (window.innerWidth - width) / 2
+  const top = (window.innerHeight - height) / 2
+  window.open(
+    `${import.meta.env.VITE_API_URL}/api/auth/social/google`,
+    "GoogleLogin",
+    `width=${width},height=${height},top=${top},left=${left}`
+  )
+}
+
+const registerWithFacebook = () => {
+  const width = 500
+  const height = 600
+  const left = (window.innerWidth - width) / 2
+  const top = (window.innerHeight - height) / 2
+  window.open(
+    `${import.meta.env.VITE_API_URL}/api/auth/social/facebook`,
+    "FacebookLogin",
+    `width=${width},height=${height},top=${top},left=${left}`
+  )
 }
 </script>
 
 <style scoped>
 .register-page {
-  min-height: calc(100vh - 80px);
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
+  background: #f9fafb;
   padding: 1rem;
 }
 
@@ -143,108 +154,43 @@ const handleRegister = () => {
 }
 
 .register-card {
+  background: #fff;
   padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .logo {
   text-align: center;
   margin-bottom: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
 }
 
-.logo-icon {
-  font-size: 2.5rem;
-}
+.logo-icon { font-size: 2.5rem; }
+.logo h1 { font-size: 1.5rem; margin: 0; color: #4f46e5; }
+.register-card h2 { text-align: center; margin-bottom: 1.5rem; }
 
-.logo h1 {
-  font-size: 1.5rem;
-  color: var(--primary-color);
-  margin: 0;
-}
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; font-weight: 600; margin-bottom: 0.35rem; }
+.form-group input { width: 100%; padding: 0.65rem; border: 1px solid #d1d5db; border-radius: 0.5rem; }
+.form-group input:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
 
-.register-card h2 {
-  text-align: center;
-  margin-bottom: 1.5rem;
-  font-size: 1.25rem;
-}
+.btn-primary { width: 100%; padding: 0.75rem; border-radius: 0.5rem; background: #4f46e5; color: #fff; border: none; font-weight: bold; }
+.btn-primary:hover { opacity: 0.9; cursor: pointer; }
 
-.form-group {
-  margin-bottom: 1rem;
-}
+.login-link { text-align: center; margin-top: 1rem; font-size: 0.9rem; }
+.login-link a { color: #4f46e5; text-decoration: none; font-weight: 600; }
+.login-link a:hover { text-decoration: underline; }
 
-.form-group label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 0.35rem;
-  color: var(--dark-color);
-  font-size: 0.9rem;
-}
+.divider { text-align: center; margin: 1.5rem 0; position: relative; color: #9ca3af; font-weight: 600; }
+.divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 48%; height: 1px; background-color: #d1d5db; }
+.divider::before { left: 0; } .divider::after { right: 0; }
 
-.form-group input {
-  width: 100%;
-  padding: 0.65rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  font-size: 0.95rem;
-  transition: border-color 0.3s ease;
-}
+.social-login { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; }
+.social-btn { flex: 1; padding: 0.75rem; border-radius: 0.5rem; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.35rem; font-size: 0.9rem; border: 1px solid #d1d5db; }
+.social-btn.facebook { background-color: #1877f2; color: white; }
+.social-btn.google { background-color: #fff; color: #333; }
+.social-btn:hover { opacity: 0.9; }
 
-.form-group input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
-}
-
-.btn-block {
-  width: 100%;
-  margin-top: 0.5rem;
-  margin-bottom: 1rem;
-  padding: 0.875rem;
-  font-size: 1rem;
-}
-
-.login-link {
-  text-align: center;
-  color: #6b7280;
-  font-size: 0.9rem;
-}
-
-.login-link a {
-  color: var(--primary-color);
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.login-link a:hover {
-  text-decoration: underline;
-}
-
-.error-message {
-  background-color: #fee2e2;
-  color: #991b1b;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-  border-left: 4px solid #ef4444;
-}
-
-.success-message {
-  background-color: #d1fae5;
-  color: #065f46;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-  border-left: 4px solid #10b981;
-}
-
-@media (max-width: 768px) {
-  .register-container {
-    max-width: 100%;
-  }
-}
+.error-message { background-color: #fee2e2; color: #991b1b; padding: 0.75rem; border-radius: 0.5rem; margin-top: 1rem; text-align: center; font-size: 0.9rem; }
+.success-message { background-color: #d1fae5; color: #065f46; padding: 0.75rem; border-radius: 0.5rem; margin-top: 1rem; text-align: center; font-size: 0.9rem; }
 </style>

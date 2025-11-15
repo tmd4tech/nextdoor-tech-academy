@@ -11,20 +11,16 @@
           <div class="filter-group">
             <label>Category</label>
             <select v-model="selectedCategory">
-              <option value="All">All Courses</option>
-              <option value="Phone Repair">Phone Repair</option>
-              <option value="Laptop Repair">Laptop Repair</option>
-              <option value="Software Training">Software Training</option>
-              <option value="Business Skills">Business Skills</option>
+              <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
             </select>
           </div>
 
           <div class="filter-group">
             <label>Level</label>
             <div class="checkbox-group">
-              <label><input type="checkbox" value="Beginner" v-model="selectedLevels"> Beginner</label>
-              <label><input type="checkbox" value="Intermediate" v-model="selectedLevels"> Intermediate</label>
-              <label><input type="checkbox" value="Advanced" v-model="selectedLevels"> Advanced</label>
+              <label v-for="level in levels" :key="level">
+                <input type="checkbox" :value="level" v-model="selectedLevels"> {{ level }}
+              </label>
             </div>
           </div>
 
@@ -33,6 +29,8 @@
             <input type="number" v-model.number="minPrice" placeholder="Min (GHS)" class="price-input">
             <input type="number" v-model.number="maxPrice" placeholder="Max (GHS)" class="price-input">
           </div>
+
+          <button class="btn btn-secondary" @click="resetFilters">Reset Filters</button>
         </aside>
 
         <!-- Courses Grid -->
@@ -44,14 +42,13 @@
           <div v-if="filteredCourses.length > 0" class="grid grid-3">
             <CourseCard 
               v-for="course in filteredCourses" 
-              :key="course.id"
+              :key="course._id"
               :course="course"
             />
           </div>
 
           <div v-else class="no-courses">
-            <p>No courses found matching your filters</p>
-            <button @click="resetFilters" class="btn btn-primary">Reset Filters</button>
+            <p>No courses match your filters.</p>
           </div>
         </main>
       </div>
@@ -60,33 +57,51 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useCourseStore } from '../stores/courseStore'
 import CourseCard from '../components/CourseCard.vue'
 
 const courseStore = useCourseStore()
 
+// Filters
 const selectedCategory = ref('All')
 const selectedLevels = ref([])
 const minPrice = ref(0)
 const maxPrice = ref(10000)
 
+// Levels options
+const levels = ['Beginner', 'Intermediate', 'Advanced']
+
+// Computed dynamic categories
+const categories = computed(() => {
+  const cats = new Set(courseStore.courses.map(c => c.category))
+  return ['All', ...cats]
+})
+
+// Filtered courses
 const filteredCourses = computed(() => {
   return courseStore.courses.filter(course => {
     const categoryMatch = selectedCategory.value === 'All' || course.category === selectedCategory.value
     const levelMatch = selectedLevels.value.length === 0 || selectedLevels.value.includes(course.level)
     const priceMatch = course.price >= minPrice.value && course.price <= maxPrice.value
-    
     return categoryMatch && levelMatch && priceMatch
   })
 })
 
+// Reset filters
 const resetFilters = () => {
   selectedCategory.value = 'All'
   selectedLevels.value = []
   minPrice.value = 0
   maxPrice.value = 10000
 }
+// Fetch courses on mount
+/* onMounted(() => {
+  courseStore.fetchCourses()
+})
+ */
+// Fetch courses on mount
+onMounted(() => courseStore.fetchCourses())
 </script>
 
 <style scoped>

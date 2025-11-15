@@ -1,45 +1,57 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 export const useCartStore = defineStore('cart', () => {
   const items = ref([])
   const isOpen = ref(false)
 
-  const itemCount = computed(() => items.value.length)
+  // Count total items including quantities
+  const itemCount = computed(() =>
+    items.value.reduce((sum, item) => sum + item.quantity, 0)
+  )
 
-  const subtotal = computed(() => {
-    return items.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-  })
+  const subtotal = computed(() =>
+    items.value.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  )
 
-  const tax = computed(() => {
-    return Math.round(subtotal.value * 0.15 * 100) / 100 // 15% tax
-  })
+  const tax = computed(() =>
+    Math.round(subtotal.value * 0.15 * 100) / 100
+  )
 
-  const total = computed(() => {
-    return Math.round((subtotal.value + tax.value) * 100) / 100
+  const total = computed(() =>
+    Math.round((subtotal.value + tax.value) * 100) / 100
+  )
+
+  const normalizeItem = (item) => ({
+    id: item.id || item._id,     // FIX: supports _id or id
+    name: item.name,
+    image: item.image,
+    price: Number(item.price),
   })
 
   const addItem = (item) => {
-    const existingItem = items.value.find(i => i.id === item.id && i.type === item.type)
-    
+    const normalized = normalizeItem(item)
+
+    const existingItem = items.value.find(i => i.id === normalized.id)
     if (existingItem) {
       existingItem.quantity += 1
     } else {
-      items.value.push({
-        ...item,
-        quantity: 1
-      })
+      items.value.push({ ...normalized, quantity: 1 })
     }
   }
 
-  const removeItem = (itemId, itemType) => {
-    items.value = items.value.filter(i => !(i.id === itemId && i.type === itemType))
+  const removeItem = (itemId) => {
+    items.value = items.value.filter(i => i.id !== itemId)
   }
 
-  const updateQuantity = (itemId, itemType, quantity) => {
-    const item = items.value.find(i => i.id === itemId && i.type === itemType)
-    if (item && quantity > 0) {
+  const updateQuantity = (itemId, quantity) => {
+    const item = items.value.find(i => i.id === itemId)
+    if (!item) return
+
+    if (quantity > 0) {
       item.quantity = quantity
+    } else {
+      removeItem(itemId)
     }
   }
 
@@ -47,17 +59,23 @@ export const useCartStore = defineStore('cart', () => {
     items.value = []
   }
 
-  const toggleCart = () => {
-    isOpen.value = !isOpen.value
+  const toggleCart = () => { isOpen.value = !isOpen.value }
+  const openCart = () => { isOpen.value = true }
+  const closeCart = () => { isOpen.value = false }
+
+  // Restore cart
+  if (localStorage.getItem('cart')) {
+    try {
+      items.value = JSON.parse(localStorage.getItem('cart'))
+    } catch (err) {
+      items.value = []
+    }
   }
 
-  const openCart = () => {
-    isOpen.value = true
-  }
-
-  const closeCart = () => {
-    isOpen.value = false
-  }
+  // Save cart
+  watch(items, (newItems) => {
+    localStorage.setItem('cart', JSON.stringify(newItems))
+  }, { deep: true })
 
   return {
     items,

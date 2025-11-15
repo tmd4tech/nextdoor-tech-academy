@@ -33,12 +33,13 @@ const cartStore = useCartStore()
 
 const decreaseQuantity = () => {
   if (props.item.quantity > 1) {
-    cartStore.updateQuantity(props.item.id, props.item.type, props.item.quantity - 1)
+    cartStore.updateQuantity(props.item.id, props.item.quantity - 1)
   }
 }
 
 const increaseQuantity = () => {
-  cartStore.updateQuantity(props.item.id, props.item.type, props.item.quantity + 1)
+ cartStore.updateQuantity(props.item.id, props.item.quantity + 1)
+
 }
 
 const updateQuantity = () => {
@@ -48,7 +49,7 @@ const updateQuantity = () => {
 }
 
 const removeItem = () => {
-  cartStore.removeItem(props.item.id, props.item.type)
+cartStore.removeItem(props.item.id, props.item.type)
 }
 </script>
 

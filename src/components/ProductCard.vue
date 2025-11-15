@@ -1,25 +1,38 @@
 <template>
   <div class="product-card card">
+    <!-- Product Image -->
     <div class="product-image">
-      <img :src="`https://via.placeholder.com/300x200?text=${product.name}`" :alt="product.name">
-      <span class="category-badge">{{ product.category }}</span>
+      <img 
+        :src="product.imageUrl || `https://via.placeholder.com/300x200?text=${product.name}`" 
+        :alt="product.name" 
+      />
+      <span class="category-badge">{{ product.category || 'Uncategorized' }}</span>
     </div>
 
+    <!-- Product Info -->
     <div class="product-info">
-      <h3>{{ product.name }}</h3>
-      <p class="brand">{{ product.brand }}</p>
-      <p class="description">{{ product.description.substring(0, 60) }}...</p>
+      <h3>{{ product.name || 'Unnamed Product' }}</h3>
+      <p class="brand">{{ product.brand || 'Unknown Brand' }}</p>
+      <p class="description">
+        {{ product.description?.substring(0, 60) || 'No description available.' }}...
+      </p>
 
+      <!-- Product Footer -->
       <div class="product-footer">
         <div class="price-stock">
-          <span class="price">GHS {{ product.price }}</span>
+          <span class="price">GHS {{ product.price ?? 'N/A' }}</span>
           <span class="stock" :class="product.stock > 0 ? 'in-stock' : 'out-stock'">
             {{ product.stock > 0 ? 'In Stock' : 'Out of Stock' }}
           </span>
         </div>
 
         <div class="actions">
-          <router-link :to="`/product/${product.id}`" class="btn btn-outline">View</router-link>
+          <router-link 
+            :to="`/product/${product._id}`" 
+            class="btn btn-outline"
+          >
+            View
+          </router-link>
           <button 
             class="btn btn-primary" 
             :disabled="product.stock === 0"
@@ -51,7 +64,7 @@ const addToCart = () => {
     ...props.product,
     type: 'product'
   })
-  alert(`${props.product.name} added to cart!`)
+  alert(`${props.product.name || 'Product'} added to cart!`)
 }
 </script>
 
@@ -60,6 +73,14 @@ const addToCart = () => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background-color: #fff;
+  transition: transform 0.2s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-3px);
 }
 
 .product-image {
@@ -80,7 +101,7 @@ const addToCart = () => {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: var(--primary-color);
+  background-color: #6366f1; /* primary color */
   color: white;
   padding: 0.25rem 0.75rem;
   border-radius: 0.25rem;
@@ -101,7 +122,7 @@ const addToCart = () => {
 }
 
 .brand {
-  color: var(--primary-color);
+  color: #6366f1;
   font-size: 0.9rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
@@ -129,7 +150,7 @@ const addToCart = () => {
 .price {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--primary-color);
+  color: #6366f1;
 }
 
 .stock {

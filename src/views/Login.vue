@@ -9,44 +9,37 @@
 
         <h2>Login to Your Account</h2>
 
+        <!-- Regular Login Form -->
         <form @submit.prevent="handleLogin">
           <div class="form-group">
             <label>Email Address</label>
-            <input 
-              type="email" 
-              v-model="email" 
-              placeholder="Enter your email"
-              required
-            >
+            <input type="email" v-model="email" placeholder="Enter your email" required />
           </div>
 
           <div class="form-group">
             <label>Password</label>
-            <input 
-              type="password" 
-              v-model="password" 
-              placeholder="Enter your password"
-              required
-            >
+            <input type="password" v-model="password" placeholder="Enter your password" required />
           </div>
 
           <button type="submit" class="btn btn-primary btn-block">
-            Login
+            {{ loading ? "Logging in..." : "Login" }}
           </button>
         </form>
 
         <p class="forgot-password">
-          <a href="#">Forgot your password?</a>
+          <router-link to="/forgot-password">Forgot your password?</router-link>
         </p>
 
         <div class="divider">Or</div>
 
+        <!-- Social Login Buttons -->
         <div class="social-login">
-          <button class="social-btn">
-            <span class="social-icon">f</span> Facebook
+          <button class="social-btn facebook" @click="loginWithFacebook">
+            <span class="social-icon">f</span> Login with Facebook
           </button>
-          <button class="social-btn">
-            <span class="social-icon">G</span> Google
+
+          <button class="social-btn google" @click="loginWithGoogle">
+            <span class="social-icon">G</span> Login with Google
           </button>
         </div>
 
@@ -54,24 +47,17 @@
           Don't have an account? <router-link to="/register">Sign up here</router-link>
         </p>
 
-        <div v-if="error" class="error-message">
-          {{ error }}
-        </div>
-
-        <div class="demo-credentials">
-          <p><strong>Demo Credentials:</strong></p>
-          <p>Email: test@example.com</p>
-          <p>Password: password123</p>
-        </div>
+        <div v-if="error" class="error-message">{{ error }}</div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import axios from 'axios'
 
 const router = useRouter()
 const route = useRoute()
@@ -80,221 +66,140 @@ const authStore = useAuthStore()
 const email = ref('')
 const password = ref('')
 const error = ref('')
+const loading = computed(() => authStore.loading)
 
-const handleLogin = () => {
+// ---------- Regular Login ----------
+const handleLogin = async () => {
   error.value = ''
+  try {
+    const success = await authStore.login(email.value, password.value)
+    if (!success) {
+      error.value = authStore.error || 'Login failed. Please try again.'
+      return
+    }
 
-  if (!email.value || !password.value) {
-    error.value = 'Please fill in all fields'
-    return
-  }
+    console.log('Logged in user:', authStore.user)
+    console.log('Token:', authStore.token)
 
-  if (authStore.login(email.value, password.value)) {
-    const redirect = route.query.redirect || '/'
-    router.push(redirect)
-  } else {
-    error.value = 'Invalid email or password'
+    const redirectRoute = authStore.user.isAdmin ? '/admin' : '/dashboard'
+    router.push(redirectRoute)
+  } catch (err) {
+    console.error('Login failed:', err)
+    error.value = 'Login failed. Please try again.'
   }
 }
+
+// ---------- Social Login ----------
+const loginWithGoogle = () => {
+  const width = 500
+  const height = 600
+  const left = window.innerWidth / 2 - width / 2
+  const top = window.innerHeight / 2 - height / 2
+
+  const popup = window.open(
+    `${import.meta.env.VITE_API_URL}/api/auth/social/google`,
+    "Google Login",
+    `width=${width},height=${height},top=${top},left=${left}`
+  )
+
+  window.addEventListener("message", function listener(event) {
+    if (event.origin !== import.meta.env.VITE_API_URL) return
+    if (event.data.token) {
+      authStore.loginWithToken(event.data.token).then(() => {
+        const redirectRoute = authStore.user.isAdmin ? '/admin' : '/dashboard'
+        router.push(redirectRoute)
+      })
+      popup.close()
+      window.removeEventListener("message", listener)
+    }
+  })
+}
+
+const loginWithFacebook = () => {
+  window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/social/facebook`
+}
+
+// Handle token from query (after social login full-page redirect)
+onMounted(async () => {
+  const token = route.query.token
+  if (token) {
+    await authStore.loginWithToken(token)
+    const redirectRoute = authStore.user.isAdmin ? '/admin' : '/dashboard'
+    router.push(redirectRoute)
+  } else {
+    // authStore initialization is handled globally in main.js; nothing to do here
+  }
+})
 </script>
+
 
 <style scoped>
 .login-page {
-  min-height: calc(100vh - 80px);
   display: flex;
-  align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
-  padding: 1rem;
-}
-
-.login-container {
-  width: 100%;
-  max-width: 400px;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f5f5f5;
 }
 
 .login-card {
   padding: 2rem;
+  max-width: 400px;
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  background: #fff;
 }
 
 .logo {
   text-align: center;
   margin-bottom: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .logo-icon {
-  font-size: 2.5rem;
+  font-size: 3rem;
+  display: block;
 }
 
-.logo h1 {
-  font-size: 1.5rem;
-  color: var(--primary-color);
-  margin: 0;
-}
-
-.login-card h2 {
+h2 {
   text-align: center;
   margin-bottom: 1.5rem;
-  font-size: 1.25rem;
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
-.form-group label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: var(--dark-color);
-}
-
-.form-group input {
+.btn {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  transition: border-color 0.3s ease;
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
-}
-
-.btn-block {
-  width: 100%;
-  margin-bottom: 1rem;
-  padding: 0.875rem;
-  font-size: 1rem;
-}
-
-.forgot-password {
-  text-align: center;
-  margin-bottom: 1.5rem;
-}
-
-.forgot-password a {
-  color: var(--primary-color);
-  text-decoration: none;
-  font-weight: 600;
-  transition: color 0.3s ease;
-}
-
-.forgot-password a:hover {
-  color: var(--dark-color);
-}
-
-.divider {
-  text-align: center;
-  margin: 1.5rem 0;
-  position: relative;
-  color: #9ca3af;
-  font-weight: 600;
-}
-
-.divider::before,
-.divider::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  width: 48%;
-  height: 1px;
-  background-color: var(--border-color);
-}
-
-.divider::before {
-  left: 0;
-}
-
-.divider::after {
-  right: 0;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
 }
 
 .social-login {
   display: flex;
+  flex-direction: column;
   gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  margin-top: 1rem;
 }
 
 .social-btn {
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid var(--border-color);
-  background-color: white;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
-  font-size: 0.9rem;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
 }
 
-.social-btn:hover {
-  background-color: var(--light-color);
-  border-color: var(--primary-color);
-}
+.social-btn.facebook { background-color: #1877f2; color: white; }
+.social-btn.google { background-color: #fff; color: #333; border: 1px solid #ccc; }
 
-.social-icon {
-  font-weight: 700;
-  font-size: 1rem;
-}
-
-.signup-link {
-  text-align: center;
-  color: #6b7280;
-}
-
-.signup-link a {
-  color: var(--primary-color);
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.signup-link a:hover {
-  text-decoration: underline;
-}
-
-.error-message {
-  background-color: #fee2e2;
-  color: #991b1b;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-  border-left: 4px solid #ef4444;
-}
-
-.demo-credentials {
-  background-color: #ecfdf5;
-  border: 1px solid #d1fae5;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  margin-top: 1.5rem;
-  font-size: 0.85rem;
-  color: #065f46;
-}
-
-.demo-credentials p {
-  margin: 0.25rem 0;
-}
-
-.demo-credentials strong {
-  color: #047857;
-}
-
-@media (max-width: 768px) {
-  .login-container {
-    max-width: 100%;
-  }
-}
+.social-btn:hover { opacity: 0.9; }
+.error-message { color: red; margin-top: 1rem; text-align: center; }
+.divider { text-align: center; margin: 1rem 0; font-weight: bold; }
 </style>

@@ -1,10 +1,13 @@
 <template>
   <div class="course-detail" v-if="course">
-    <div class="course-header" :style="{ backgroundImage: `url(https://via.placeholder.com/1200x300?text=${course.title})` }">
+    <div
+      class="course-header"
+      :style="{ backgroundImage: `url(${course.imageUrl || `https://via.placeholder.com/1200x300?text=${encodeURIComponent(course.title)}`})` }"
+    >
       <div class="container">
         <router-link to="/courses" class="back-link">← Back to Courses</router-link>
         <h1>{{ course.title }}</h1>
-        <p class="instructor">By {{ course.instructor }}</p>
+        <p class="instructor">By {{ course.instructor || 'Unknown Instructor' }}</p>
       </div>
     </div>
 
@@ -13,10 +16,10 @@
         <main class="course-content">
           <section class="about-section">
             <h2>About This Course</h2>
-            <p>{{ course.description }}</p>
+            <p>{{ course.description || 'No description available.' }}</p>
           </section>
 
-          <section class="syllabus-section">
+          <section class="syllabus-section" v-if="course.syllabus?.length">
             <h2>What You'll Learn</h2>
             <ul class="syllabus-list">
               <li v-for="(item, index) in course.syllabus" :key="index">
@@ -34,7 +37,6 @@
               </div>
               <p class="review-text">This course is amazing! I learned so much and now I can repair phones confidently.</p>
             </div>
-
             <div class="review-card">
               <div class="review-header">
                 <span class="reviewer-name">Jane Smith</span>
@@ -47,28 +49,37 @@
 
         <aside class="course-sidebar">
           <div class="enrollment-card card">
-            <img :src="`https://via.placeholder.com/300x200?text=${course.title}`" :alt="course.title" class="course-thumbnail">
+            <img
+              :src="`https://via.placeholder.com/300x200?text=${encodeURIComponent(course.title)}`"
+              :alt="course.title"
+              class="course-thumbnail"
+            />
 
             <div class="course-meta">
               <div class="meta-item">
                 <span class="label">Price:</span>
-                <span class="value">GHS {{ course.price }}</span>
+                <span class="value">GHS {{ course.price || 0 }}</span>
               </div>
               <div class="meta-item">
                 <span class="label">Duration:</span>
-                <span class="value">{{ course.duration }}</span>
+                <span class="value">{{ course.duration || 'N/A' }}</span>
               </div>
               <div class="meta-item">
                 <span class="label">Level:</span>
-                <span class="value" :class="`level-${course.level.toLowerCase()}`">{{ course.level }}</span>
+                <span
+                  class="level-badge"
+                  :class="`level-${(course.level || 'unknown').toLowerCase()}`"
+                >
+                  {{ course.level || 'Unknown' }}
+                </span>
               </div>
               <div class="meta-item">
                 <span class="label">Students:</span>
-                <span class="value">{{ course.students }} enrolled</span>
+                <span class="value">{{ course.students || 0 }} enrolled</span>
               </div>
               <div class="meta-item">
                 <span class="label">Rating:</span>
-                <span class="value">⭐ {{ course.rating }}/5</span>
+                <span class="value">⭐ {{ course.rating || 0 }}/5</span>
               </div>
             </div>
 
@@ -106,7 +117,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCourseStore } from '../stores/courseStore'
 import { useAuthStore } from '../stores/authStore'
@@ -117,13 +128,21 @@ const courseStore = useCourseStore()
 const authStore = useAuthStore()
 const cartStore = useCartStore()
 
+// Ensure courses are loaded
+onMounted(async () => {
+  if (!courseStore.courses.length) {
+    await courseStore.fetchCourses()
+  }
+})
+
 const course = computed(() => {
   return courseStore.getCourseById(route.params.id)
 })
 
 const isEnrolled = computed(() => {
   if (!authStore.user || !course.value) return false
-  return authStore.user.enrolledCourses.includes(course.value.id)
+  // Make sure to match the correct id field (_id vs id)
+  return authStore.user.enrolledCourses?.includes(course.value._id)
 })
 
 const enrollNow = () => {

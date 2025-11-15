@@ -1,70 +1,100 @@
 <template>
   <div class="course-card card">
     <div class="course-image">
-      <img :src="`https://via.placeholder.com/300x180?text=${course.title}`" :alt="course.title">
-      <span class="level-badge" :class="`level-${course.level.toLowerCase()}`">{{ course.level }}</span>
+     <img :src="courseImage" :alt="course.title" />
+      <span
+        class="level-badge"
+        :class="`level-${course.level?.toLowerCase() || 'unknown'}`"
+      >
+        {{ course.level || 'Unknown' }}
+      </span>
     </div>
 
     <div class="course-info">
       <h3>{{ course.title }}</h3>
-      <p class="instructor">👨‍🏫 {{ course.instructor }}</p>
+      <p class="instructor">👨‍🏫 {{ course.instructor || 'TBA' }}</p>
       
       <div class="course-meta">
-        <span>⏱️ {{ course.duration }}</span>
-        <span>👥 {{ course.students }} students</span>
+        <span>⏱️ {{ course.duration || 'Self-paced' }}</span>
+<span>👥 {{ props.course.students?.length || 0 }} students</span>
+
       </div>
 
       <div class="rating">
-        <span class="stars">⭐ {{ course.rating }}</span>
+        ⭐ {{ course.rating || 0 }}
       </div>
 
-      <p class="description">{{ course.description.substring(0, 80) }}...</p>
+      <p class="description">{{ course.description?.substring(0, 80) || 'No description available' }}...</p>
 
       <div class="course-footer">
         <span class="price">GHS {{ course.price }}</span>
-        <div class="actions">
-          <router-link :to="`/course/${course.id}`" class="btn btn-outline">View</router-link>
-          <button class="btn btn-primary" @click="enrollCourse">Enroll Now</button>
-        </div>
+        <router-link :to="`/course/${course._id}`" class="btn btn-primary">View Course</router-link>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { defineProps } from 'vue'
-import { useAuthStore } from '../stores/authStore'
-import { useCartStore } from '../stores/cartStore'
 
+import { computed } from 'vue';
+import { defineProps } from 'vue';
+
+import axios from 'axios';
 const props = defineProps({
   course: {
     type: Object,
     required: true
   }
-})
+});
 
-const authStore = useAuthStore()
-const cartStore = useCartStore()
 
-const enrollCourse = () => {
-  if (!authStore.isLoggedIn) {
-    alert('Please login to enroll in courses')
-    return
+// Placeholder image if course has no image
+const placeholderImage = 'https://via.placeholder.com/300x180?text=Course';
+
+// Replace with your Render backend URL
+const baseUrl = 'https://next-door-backend.onrender.com';
+
+// Computed course image URL
+const courseImage = computed(() =>
+  props.course.imageUrl ? `${baseUrl}${props.course.imageUrl}` : placeholderImage
+);
+
+// Enroll function
+const enroll = async () => {
+  try {
+    const token = localStorage.getItem('token'); // or however you store it
+    await axios.post(
+      `${baseUrl}/api/courses/${props.course._id}/enroll`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+    alert('Enrolled successfully!');
+  } catch (err) {
+    alert(err?.response?.data?.message || 'Enrollment failed!');
   }
+};
 
-  cartStore.addItem({
-    ...props.course,
-    type: 'course'
-  })
-  alert(`${props.course.title} added to cart!`)
-}
+
 </script>
+
 
 <style scoped>
 .course-card {
-  overflow: hidden;
   display: flex;
   flex-direction: column;
+  background: white;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+}
+
+.course-card:hover {
+  transform: translateY(-4px);
 }
 
 .course-image {
@@ -85,10 +115,10 @@ const enrollCourse = () => {
   position: absolute;
   top: 10px;
   right: 10px;
-  padding: 0.35rem 0.75rem;
+  padding: 0.25rem 0.75rem;
   border-radius: 0.25rem;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   color: white;
 }
 
@@ -98,7 +128,6 @@ const enrollCourse = () => {
 
 .course-info {
   padding: 1rem;
-  flex: 1;
   display: flex;
   flex-direction: column;
 }
@@ -111,8 +140,8 @@ const enrollCourse = () => {
 
 .instructor {
   font-size: 0.9rem;
-  color: var(--primary-color);
-  font-weight: 600;
+  color: #4b5563;
+  font-weight: 500;
   margin-bottom: 0.5rem;
 }
 
@@ -125,46 +154,40 @@ const enrollCourse = () => {
 }
 
 .rating {
-  margin-bottom: 0.5rem;
-}
-
-.stars {
-  font-size: 0.9rem;
   font-weight: 600;
+  margin-bottom: 0.5rem;
 }
 
 .description {
   font-size: 0.9rem;
   color: #6b7280;
-  margin-bottom: 1rem;
   flex: 1;
   line-height: 1.4;
+  margin-bottom: 1rem;
 }
 
 .course-footer {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  gap: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color);
+  align-items: center;
 }
 
 .price {
-  font-size: 1.25rem;
   font-weight: 700;
-  color: var(--primary-color);
+  color: #1d4ed8;
 }
 
-.actions {
-  display: flex;
-  gap: 0.5rem;
-  flex: 1;
+.btn {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  text-decoration: none;
+  background-color: #1d4ed8;
+  color: white;
+  border-radius: 0.375rem;
+  transition: background 0.2s;
 }
 
-.actions .btn {
-  flex: 1;
-  padding: 0.5rem;
-  font-size: 0.9rem;
+.btn:hover {
+  background-color: #2563eb;
 }
 </style>

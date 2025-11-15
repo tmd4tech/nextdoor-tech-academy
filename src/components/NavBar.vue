@@ -24,14 +24,15 @@
         </button>
 
         <div v-if="authStore.isLoggedIn" class="user-menu">
-          <button @click="toggleUserMenu" class="user-toggle">
-            👤 {{ authStore.user.fullName }}
-          </button>
-          <div class="dropdown" v-if="showUserMenu">
-            <router-link to="/dashboard">Dashboard</router-link>
-            <a href="#" @click.prevent="authStore.logout">Logout</a>
-          </div>
-        </div>
+  <button @click="toggleUserMenu" class="user-toggle">
+    👤 {{ authStore.user?.fullName || 'User' }}
+  </button>
+  <div class="dropdown" v-if="showUserMenu">
+    <router-link :to="dashboardRoute">Dashboard</router-link>
+    <a href="#" @click.prevent="logoutAndRedirect">Logout</a>
+  </div>
+</div>
+
 
         <router-link v-else to="/login" class="btn login-pill">Login</router-link>
 
@@ -44,18 +45,32 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useCartStore } from '../stores/cartStore'
 import { useAuthStore } from '../stores/authStore'
+import { useRouter } from 'vue-router'
 
 const cartStore = useCartStore()
 const authStore = useAuthStore()
+const router = useRouter()
 
 const menuOpen = ref(false)
 const showUserMenu = ref(false)
 
 const toggleMenu = () => { menuOpen.value = !menuOpen.value }
 const toggleUserMenu = () => { showUserMenu.value = !showUserMenu.value }
+
+// dynamic dashboard route
+const dashboardRoute = computed(() => {
+  if (!authStore.user) return '/login';
+  return authStore.user.isAdmin ? '/admin' : '/dashboard';
+});
+
+const logoutAndRedirect = () => {
+  showUserMenu.value = false
+  authStore.logout()
+  router.push('/login')
+}
 </script>
 
 <style scoped>
@@ -63,7 +78,6 @@ const toggleUserMenu = () => { showUserMenu.value = !showUserMenu.value }
 :root {
   --primary-color: #007bff;
   --text-color: #333;
-  --dark-color: #111;
   --light-color: #f7f9fc;
   --border-color: #e0e0e0;
   --danger-color: #ff4b5c;

@@ -77,11 +77,16 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useProductStore } from '../stores/productStore'
 import ProductCard from '../components/ProductCard.vue'
 
 const productStore = useProductStore()
+
+// Fetch products on component mount
+onMounted(async () => {
+  await productStore.fetchProducts()
+})
 
 const filters = ref({
   category: 'All',
@@ -92,10 +97,12 @@ const filters = ref({
 
 const sortBy = ref('newest')
 
+// Compute filtered products
 const filteredProducts = computed(() => {
   return productStore.filterProducts(filters.value)
 })
 
+// Compute filtered + sorted products
 const filteredAndSortedProducts = computed(() => {
   let products = [...filteredProducts.value]
 
@@ -110,6 +117,7 @@ const filteredAndSortedProducts = computed(() => {
   return products
 })
 
+// Reset filters
 const resetFilters = () => {
   filters.value = {
     category: 'All',
@@ -120,6 +128,7 @@ const resetFilters = () => {
   sortBy.value = 'newest'
 }
 </script>
+
 
 <style scoped>
 .shop {

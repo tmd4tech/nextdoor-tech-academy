@@ -1,129 +1,127 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import axios from 'axios'
+import { useAuthStore } from './authStore'
+
+const API_BASE = (import.meta.env.VITE_API_URL || 'VITE_API_URL=https://next-door-backend.onrender.com') + '/api'
 
 export const useProductStore = defineStore('product', () => {
-  const products = ref([
-    {
-      id: 1,
-      name: 'iPhone 14 Pro Max',
-      category: 'Phones',
-      brand: 'Apple',
-      price: 8500,
-      stock: 15,
-      image: 'phone-iphone14.jpg',
-      description: 'Latest iPhone with A16 Bionic chip, 48MP camera, and Dynamic Island',
-      specs: ['6.7-inch Super Retina XDR display', 'A16 Bionic chip', '48MP Main camera', '128GB storage']
-    },
-    {
-      id: 2,
-      name: 'Samsung Galaxy S23 Ultra',
-      category: 'Phones',
-      brand: 'Samsung',
-      price: 7200,
-      stock: 20,
-      image: 'phone-samsung-s23.jpg',
-      description: 'Premium Samsung flagship with S Pen and 200MP camera',
-      specs: ['6.8-inch Dynamic AMOLED display', 'Snapdragon 8 Gen 2', '200MP camera', '256GB storage']
-    },
-    {
-      id: 3,
-      name: 'MacBook Pro 16-inch M3',
-      category: 'Laptops',
-      brand: 'Apple',
-      price: 15000,
-      stock: 8,
-      image: 'laptop-macbook-m3.jpg',
-      description: 'Powerful MacBook Pro with M3 chip for professionals',
-      specs: ['16-inch Liquid Retina XDR display', 'Apple M3 Pro chip', '18GB unified memory', '512GB SSD']
-    },
-    {
-      id: 4,
-      name: 'HP Pavilion 15',
-      category: 'Laptops',
-      brand: 'HP',
-      price: 4500,
-      stock: 12,
-      image: 'laptop-hp-pavilion.jpg',
-      description: 'Versatile laptop for work and entertainment',
-      specs: ['15.6-inch FHD display', 'Intel Core i5 12th Gen', '8GB RAM', '512GB SSD']
-    },
-    {
-      id: 5,
-      name: 'Lenovo ThinkPad X1',
-      category: 'Laptops',
-      brand: 'Lenovo',
-      price: 6800,
-      stock: 10,
-      image: 'laptop-lenovo-thinkpad.jpg',
-      description: 'Business-class laptop with exceptional durability',
-      specs: ['14-inch FHD display', 'Intel Core i7 13th Gen', '16GB RAM', '1TB SSD']
-    },
-    {
-      id: 6,
-      name: 'AirPods Pro (2nd Gen)',
-      category: 'Accessories',
-      brand: 'Apple',
-      price: 1200,
-      stock: 30,
-      image: 'accessory-airpods.jpg',
-      description: 'Active noise cancellation wireless earbuds',
-      specs: ['Active Noise Cancellation', 'Adaptive Audio', 'USB-C charging', '6 hours battery life']
-    },
-    {
-      id: 7,
-      name: 'Professional Repair Toolkit',
-      category: 'Repair Tools',
-      brand: 'Generic',
-      price: 250,
-      stock: 45,
-      image: 'tool-repair-kit.jpg',
-      description: 'Complete toolkit for phone and laptop repairs',
-      specs: ['120+ pieces', 'Precision screwdrivers', 'Prying tools', 'Carrying case included']
-    },
-    {
-      id: 8,
-      name: 'iPhone 13 Screen Replacement',
-      category: 'Parts',
-      brand: 'Apple',
-      price: 450,
-      stock: 25,
-      image: 'part-iphone13-screen.jpg',
-      description: 'Original quality replacement screen for iPhone 13',
-      specs: ['OLED display', 'Touch-sensitive', 'Easy installation', '1-year warranty']
+  const products = ref([])
+  const loading = ref(false)
+  const error = ref(null)
+
+  // Helper to get admin token
+  const getToken = () => {
+    // Try auth store first, then localStorage as fallback
+    try {
+      const authStore = useAuthStore()
+      if (authStore.token) return authStore.token
+    } catch (e) {
+      // Store not initialized yet; try localStorage
     }
-  ])
-
-  const getProductById = (id) => {
-    return products.value.find(p => p.id === parseInt(id))
+    
+    const token = localStorage.getItem('token')
+    if (!token) {
+      throw new Error('Admin token missing — please log in as admin')
+    }
+    return token
   }
 
-  const getProductsByCategory = (category) => {
-    if (category === 'All') return products.value
-    return products.value.filter(p => p.category === category)
+  // Fetch all products
+const fetchProducts = async () => {
+  loading.value = true
+  error.value = null
+  try {
+    const { data } = await axios.get(`${API_BASE}/products`) // no admin token
+    products.value = data
+  } catch (err) {
+    error.value = err.response?.data?.message || err.message
+    console.error('Error fetching products:', error.value)
+  } finally {
+    loading.value = false
   }
+}
 
+
+  // Filter products
   const filterProducts = (filters) => {
-    let filtered = products.value
-
-    if (filters.category && filters.category !== 'All') {
-      filtered = filtered.filter(p => p.category === filters.category)
-    }
-
-    if (filters.brand && filters.brand.length > 0) {
-      filtered = filtered.filter(p => filters.brand.includes(p.brand))
-    }
-
-    if (filters.minPrice !== undefined && filters.maxPrice !== undefined) {
-      filtered = filtered.filter(p => p.price >= filters.minPrice && p.price <= filters.maxPrice)
-    }
-
-    return filtered
+    return products.value.filter(p => {
+      const categoryMatch = filters.category === 'All' || p.category === filters.category
+      const brandMatch = filters.brand.length === 0 || filters.brand.includes(p.brand)
+      const priceMatch = p.price >= filters.minPrice && p.price <= filters.maxPrice
+      return categoryMatch && brandMatch && priceMatch
+    })
   }
 
+  // Add a new product
+  const addProduct = async (product) => {
+    try {
+      const token = getToken()
+      const formData = new FormData()
+      Object.entries(product).forEach(([key, value]) => {
+        if (key === 'image' && value) formData.append('image', value)
+        else formData.append(key, value)
+      })
+      const { data } = await axios.post(`${API_BASE}/products`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` }
+      })
+      products.value.push(data)
+      return data
+    } catch (err) {
+      error.value = err.message || (err.response?.data?.message || 'Error adding product')
+      console.error('Error adding product:', error.value)
+      throw err
+    }
+  }
+
+  // Update product
+  const updateProduct = async (product) => {
+    try {
+      const token = getToken()
+      const formData = new FormData()
+      Object.entries(product).forEach(([key, value]) => {
+        if (key === 'image' && value) formData.append('image', value)
+        else formData.append(key, value)
+      })
+      const { data } = await axios.put(`${API_BASE}/products/${product._id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` }
+      })
+      const index = products.value.findIndex(p => p._id === product._id)
+      if (index !== -1) products.value[index] = data
+      return data
+    } catch (err) {
+      error.value = err.message || (err.response?.data?.message || 'Error updating product')
+      console.error('Error updating product:', error.value)
+      throw err
+    }
+  }
+
+  // Delete product
+  const deleteProduct = async (id) => {
+    try {
+      const token = getToken()
+      await axios.delete(`${API_BASE}/products/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+      products.value = products.value.filter(p => p._id !== id)
+    } catch (err) {
+      error.value = err.message || (err.response?.data?.message || 'Error deleting product')
+      console.error('Error deleting product:', error.value)
+      throw err
+    }
+  }
+
+  // Get a single product by ID
+  const getProductById = (id) => products.value.find(p => p._id === id)
+
+  // ✅ Return everything at the end
   return {
     products,
+    loading,
+    error,
+    fetchProducts,
+    addProduct,
+    updateProduct,
+    deleteProduct,
     getProductById,
-    getProductsByCategory,
     filterProducts
   }
 })
