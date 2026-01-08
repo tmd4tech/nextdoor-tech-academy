@@ -75,4 +75,19 @@ const Course = sequelize.define('Course', {
   timestamps: true,
 });
 
+// Associations
+Course.associate = (models) => {
+  // each course belongs to one instructor (User)
+  Course.belongsTo(models.User, {
+    foreignKey: 'instructorId',
+    as: 'instructor',
+  });
+
+  // one course has many lessons
+  Course.hasMany(models.Lesson, {
+    foreignKey: 'courseId',
+    as: 'lessons',
+  });
+};
+
 module.exports = Course;

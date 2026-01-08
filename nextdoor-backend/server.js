@@ -15,11 +15,12 @@ const User = require('./models/User')
 const authRoutes = require('./routes/authRoutes')
 const productRoutes = require('./routes/productRoutes')
 const cartRoutes = require('./routes/cartRoutes')
-const orderRoutes = require('./routes/orderRoutes')              // uses your orders router
+const orderRoutes = require('./routes/orderRoutes')
 const courseRoutes = require('./routes/courseRoutes')
 const blogRoutes = require('./routes/blogRoutes')
 const paymentRoutes = require('./routes/paymentRoutes')
 const adminProductRoutes = require('./routes/adminProductRoutes')
+const adminRoutes = require('./routes/adminRoutes')        // <-- NEW
 
 const app = express()
 
@@ -36,7 +37,6 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
 // STATIC: serve uploaded product images
-// /uploads/... -> backend/uploads/...
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // Health check
@@ -53,10 +53,14 @@ app.use('/api/auth', authRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/cart', cartRoutes)
 app.use('/api/orders', orderRoutes)
+
+// Courses (public + enrollment + admin)
 app.use('/api/courses', courseRoutes)
+
 app.use('/api/blogs', blogRoutes)
 app.use('/api/payments', paymentRoutes)
-app.use('/api/admin', adminProductRoutes) // admin product CRUD
+app.use('/api/admin/products', adminProductRoutes)  // optional: namespace products
+app.use('/api/admin', adminRoutes)                  // <-- NEW: stats, orders, top-courses
 
 // 404 handler
 app.use((req, res) => {
@@ -102,7 +106,6 @@ sequelize
   .then(async () => {
     console.log('✅ Database synchronized successfully.')
 
-    // make sure admin exists BEFORE starting server
     await ensureAdminUser()
 
     app.listen(PORT, () => {
@@ -121,7 +124,6 @@ sequelize
     process.exit(1)
   })
 
-// Handle unhandled promise rejections
 process.on('unhandledRejection', err => {
   console.error('❌ Unhandled Rejection:', err)
   process.exit(1)

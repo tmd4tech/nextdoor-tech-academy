@@ -2,9 +2,7 @@
   <div class="home">
     <!-- 🌟 HERO SECTION -->
     <section class="hero">
-      <!-- background slideshow layer -->
       <div class="hero-bg-layer"></div>
-
       <div class="hero-overlay"></div>
 
       <div class="hero-content container">
@@ -62,7 +60,16 @@
         <p class="section-subtitle">
           Build real repair skills with practical modules
         </p>
-        <div class="grid grid-3">
+
+        <div v-if="coursesError" class="grid grid-3">
+          <p>{{ coursesError }}</p>
+        </div>
+
+        <div v-else-if="loadingCourses" class="grid grid-3">
+          <p>Loading courses...</p>
+        </div>
+
+        <div v-else class="grid grid-3">
           <CourseCard
             v-for="course in featuredCourses"
             :key="course.id"
@@ -116,48 +123,83 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import axios from 'axios'
 import { useProductStore } from '../stores/productStore'
-import { useCourseStore } from '../stores/courseStore'
 import ProductCard from '../components/ProductCard.vue'
 import CourseCard from '../components/CourseCard.vue'
 
 const productStore = useProductStore()
-const courseStore = useCourseStore()
+const baseURL = import.meta.env.VITE_API_BASE_URL
 
-onMounted(async () => {
-  if (!productStore.products.length) {
-    await productStore.fetchProducts()
+// products from store
+const featuredProducts = computed(() => productStore.products.slice(0, 3))
+
+// courses loaded directly from API
+const courses = ref([])
+const loadingCourses = ref(false)
+const coursesError = ref('')
+
+const loadCourses = async () => {
+  loadingCourses.value = true
+  coursesError.value = ''
+  try {
+    const res = await axios.get(`${baseURL}/api/courses`, {
+      params: { page: 1, limit: 6 }
+    })
+
+    courses.value = (res.data.courses || []).map(c => ({
+      id: c.id,
+      title: c.title,
+      description: c.description || '',
+      price: Number(c.price) || 0,
+      duration: c.duration || '',
+      level: c.level || 'beginner',
+      category: c.category || '',
+      image: c.image || '',
+      rating: Number(c.rating) || 0,
+      enrollmentCount: c.enrollmentCount ?? 0
+    }))
+  } catch (err) {
+    console.error('Failed to load featured courses', err)
+    coursesError.value = 'Failed to load courses.'
+  } finally {
+    loadingCourses.value = false
   }
-  if (!courseStore.courses.length && typeof courseStore.fetchCourses === 'function') {
-    await courseStore.fetchCourses()
-  }
-})
+}
+
+// first 3 as featured
+const featuredCourses = computed(() => courses.value.slice(0, 3))
 
 const categories = ['Phones', 'Laptops', 'Accessories', 'Repair Tools']
-const featuredProducts = computed(() => productStore.products.slice(0, 3))
-const featuredCourses = computed(() => courseStore.courses.slice(0, 3))
 
 const testimonials = [
   {
     id: 1,
     name: 'Samuel Ofori',
     role: 'Former Student',
-    text: 'The phone repair course changed my life. I now run my own repair shop and the skills I learned here were invaluable.',
+    text: 'The phone repair course changed my life. I now run my own repair shop and the skills I learned here were invaluable.'
   },
   {
     id: 2,
     name: 'Grace Nkrumah',
     role: 'Shop Owner',
-    text: 'Great quality products at competitive prices. The laptop I bought works perfectly and the customer service was excellent.',
+    text: 'Great quality products at competitive prices. The laptop I bought works perfectly and the customer service was excellent.'
   },
   {
     id: 3,
     name: 'Prince Amoah',
     role: 'Student',
-    text: 'The repair masterclass exceeded my expectations. The instructors are knowledgeable and the hands-on training was perfect.',
-  },
+    text: 'The repair masterclass exceeded my expectations. The instructors are knowledgeable and the hands-on training was perfect.'
+  }
 ]
+
+onMounted(async () => {
+  if (!productStore.products.length) {
+    await productStore.fetchProducts()
+  }
+  await loadCourses()
+})
 </script>
 
 <style scoped>
@@ -175,7 +217,7 @@ const testimonials = [
   background-color: var(--page-bg);
 }
 
-/* 🌅 HERO SECTION – blurred slideshow background */
+/* 🌅 HERO SECTION */
 .hero {
   position: relative;
   min-height: 75vh;
@@ -187,7 +229,6 @@ const testimonials = [
   overflow: hidden;
 }
 
-/* single div that animates between two background images and is blurred */
 .hero-bg-layer {
   position: absolute;
   inset: 0;
@@ -199,7 +240,6 @@ const testimonials = [
   transform: scale(1.05);
 }
 
-/* keyframes swap between image 1 and 2 */
 @keyframes hero-slideshow {
   0%,
   45% {
@@ -211,7 +251,6 @@ const testimonials = [
   }
 }
 
-/* dark overlay on top of blurred slideshow */
 .hero-overlay {
   position: absolute;
   inset: 0;
@@ -223,7 +262,6 @@ const testimonials = [
   pointer-events: none;
 }
 
-/* hero content stays perfectly sharp */
 .hero-content {
   position: relative;
   z-index: 1;
@@ -253,7 +291,7 @@ const testimonials = [
   flex-wrap: wrap;
 }
 
-/* ✨ BUTTONS */
+/* Buttons */
 .btn {
   display: inline-block;
   padding: 0.75rem 1.7rem;
@@ -374,7 +412,7 @@ const testimonials = [
   font-weight: 500;
 }
 
-/* CTA strip above footer */
+/* CTA strip */
 .cta-strip {
   background-color: var(--primary-orange);
   padding: 1.8rem 1rem;
@@ -424,7 +462,7 @@ const testimonials = [
   background-color: #020617;
 }
 
-/* Simple fade-up animation */
+/* Fade-up animation */
 .fade-up {
   opacity: 0;
   transform: translateY(24px);
@@ -446,7 +484,7 @@ const testimonials = [
   }
 }
 
-/* Responsive tweaks */
+/* Responsive */
 @media (max-width: 768px) {
   .hero {
     min-height: 60vh;

@@ -1,13 +1,20 @@
-const Course = require('../models/Course');
-const Enrollment = require('../models/Enrollment');
-const Lesson = require('../models/Lesson');
-const LessonProgress = require('../models/LessonProgress');
-const User = require('../models/User');
-const Payment = require('../models/Payment');
+// controllers/courseController.js
+const {
+  Course,
+  Enrollment,
+  Lesson,
+  LessonProgress,
+  User,
+  Payment,
+} = require('../models');
 const emailService = require('../services/emailService');
 const paymentService = require('../services/paymentService');
 const { Op } = require('sequelize');
 
+/**
+ * Public: list courses with filters + pagination
+ * GET /api/courses
+ */
 const getAllCourses = async (req, res, next) => {
   try {
     const { category, level, search, page = 1, limit = 12 } = req.query;
@@ -25,9 +32,15 @@ const getAllCourses = async (req, res, next) => {
 
     const { count, rows } = await Course.findAndCountAll({
       where,
-      include: [{ model: User, as: 'instructor', attributes: ['id', 'firstName', 'lastName'] }],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      include: [
+        {
+          model: User,
+          as: 'instructor',
+          attributes: ['id', 'firstName', 'lastName'],
+        },
+      ],
+      limit: parseInt(limit, 10),
+      offset: parseInt(offset, 10),
       order: [['createdAt', 'DESC']],
     });
 
@@ -36,11 +49,34 @@ const getAllCourses = async (req, res, next) => {
       courses: rows,
       pagination: {
         total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
         pages: Math.ceil(count / limit),
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Admin: list all courses without pagination wrapper
+ * GET /api/courses/admin
+ */
+const getAllCoursesAdmin = async (req, res, next) => {
+  try {
+    const courses = await Course.findAll({
+      include: [
+        {
+          model: User,
+          as: 'instructor',
+          attributes: ['id', 'firstName', 'lastName'],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
+
+    res.status(200).json(courses);
   } catch (error) {
     next(error);
   }
@@ -52,8 +88,17 @@ const getCourseById = async (req, res, next) => {
 
     const course = await Course.findByPk(courseId, {
       include: [
-        { model: User, as: 'instructor', attributes: ['id', 'firstName', 'lastName', 'bio'] },
-        { model: Lesson, as: 'lessons', where: { isPublished: true }, required: false },
+        {
+          model: User,
+          as: 'instructor',
+          attributes: ['id', 'firstName', 'lastName', 'bio'],
+        },
+        {
+          model: Lesson,
+          as: 'lessons',
+          where: { isPublished: true },
+          required: false,
+        },
       ],
     });
 
@@ -75,7 +120,16 @@ const getCourseById = async (req, res, next) => {
 
 const createCourse = async (req, res, next) => {
   try {
-    const { title, description, syllabus, price, category, level, duration, image } = req.body;
+    const {
+      title,
+      description,
+      syllabus,
+      price,
+      category,
+      level,
+      duration,
+      image,
+    } = req.body;
     const instructorId = req.user.id;
 
     const course = await Course.create({
@@ -104,7 +158,17 @@ const createCourse = async (req, res, next) => {
 const updateCourse = async (req, res, next) => {
   try {
     const { courseId } = req.params;
-    const { title, description, syllabus, price, category, level, duration, image, isPublished } = req.body;
+    const {
+      title,
+      description,
+      syllabus,
+      price,
+      category,
+      level,
+      duration,
+      image,
+      isPublished,
+    } = req.body;
 
     const course = await Course.findByPk(courseId);
     if (!course) {
@@ -114,14 +178,14 @@ const updateCourse = async (req, res, next) => {
       });
     }
 
-    if (title) course.title = title;
-    if (description) course.description = description;
-    if (syllabus) course.syllabus = syllabus;
-    if (price) course.price = price;
-    if (category) course.category = category;
-    if (level) course.level = level;
-    if (duration) course.duration = duration;
-    if (image) course.image = image;
+    if (title !== undefined) course.title = title;
+    if (description !== undefined) course.description = description;
+    if (syllabus !== undefined) course.syllabus = syllabus;
+    if (price !== undefined) course.price = price;
+    if (category !== undefined) course.category = category;
+    if (level !== undefined) course.level = level;
+    if (duration !== undefined) course.duration = duration;
+    if (image !== undefined) course.image = image;
     if (isPublished !== undefined) course.isPublished = isPublished;
 
     await course.save();
@@ -172,7 +236,6 @@ const enrollInCourse = async (req, res, next) => {
       });
     }
 
-    // Check if already enrolled
     const existingEnrollment = await Enrollment.findOne({
       where: { courseId, userId },
     });
@@ -184,13 +247,16 @@ const enrollInCourse = async (req, res, next) => {
       });
     }
 
-    // If course is paid, initialize payment
     if (parseFloat(course.price) > 0) {
-      const paymentResult = await paymentService.createPaymentIntent(course.price, 'usd', {
-        courseId,
-        userId,
-        type: 'course_enrollment',
-      });
+      const paymentResult = await paymentService.createPaymentIntent(
+        course.price,
+        'usd',
+        {
+          courseId,
+          userId,
+          type: 'course_enrollment',
+        }
+      );
 
       if (!paymentResult.success) {
         return res.status(400).json({
@@ -199,7 +265,6 @@ const enrollInCourse = async (req, res, next) => {
         });
       }
 
-      // Create payment record
       await Payment.create({
         userId,
         amount: course.price,
@@ -217,7 +282,6 @@ const enrollInCourse = async (req, res, next) => {
       });
     }
 
-    // Free course - enroll directly
     const enrollment = await Enrollment.create({
       courseId,
       userId,
@@ -253,9 +317,7 @@ const getEnrollments = async (req, res, next) => {
 
     const enrollments = await Enrollment.findAll({
       where,
-      include: [
-        { model: Course, as: 'course' },
-      ],
+      include: [{ model: Course, as: 'course' }],
       order: [['createdAt', 'DESC']],
     });
 
@@ -319,6 +381,7 @@ const getEnrollmentProgress = async (req, res, next) => {
 
 module.exports = {
   getAllCourses,
+  getAllCoursesAdmin,
   getCourseById,
   createCourse,
   updateCourse,

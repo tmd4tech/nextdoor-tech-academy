@@ -2,7 +2,9 @@
   <div class="page">
     <header class="page-header">
       <h2>Courses</h2>
-      <RouterLink class="btn" :to="{ name: 'AdminCourseCreate' }">+ New Course</RouterLink>
+      <RouterLink class="btn" :to="{ name: 'AdminCourseCreate' }">
+        + New Course
+      </RouterLink>
     </header>
 
     <table v-if="courses.length" class="table">
@@ -16,15 +18,15 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="course in courses" :key="course._id">
+        <tr v-for="course in courses" :key="course.id">
           <td>{{ course.title }}</td>
           <td>₵{{ course.price }}</td>
           <td>{{ course.enrollmentCount }}</td>
-          <td>{{ course.published ? 'Published' : 'Draft' }}</td>
+          <td>{{ course.isPublished ? 'Published' : 'Draft' }}</td>
           <td class="actions">
             <RouterLink
               class="link"
-              :to="{ name: 'AdminCourseEdit', params: { id: course._id } }"
+              :to="{ name: 'AdminCourseEdit', params: { id: course.id } }"
             >
               Edit
             </RouterLink>
@@ -33,7 +35,13 @@
       </tbody>
     </table>
 
-    <p v-else class="empty">No courses yet. Create your first course.</p>
+    <p v-else class="empty">
+      No courses yet. Create your first course.
+    </p>
+
+    <p v-if="errorMessage" class="error">
+      {{ errorMessage }}
+    </p>
   </div>
 </template>
 
@@ -44,10 +52,29 @@ import { RouterLink } from 'vue-router'
 
 const baseURL = import.meta.env.VITE_API_BASE_URL
 const courses = ref([])
+const errorMessage = ref('')
 
 const loadCourses = async () => {
-  const res = await axios.get(`${baseURL}/api/admin/courses`)
-  courses.value = res.data
+  try {
+    const token = localStorage.getItem('token')
+    const config = token
+      ? { headers: { Authorization: `Bearer ${token}` } }
+      : {}
+
+    // Admin list: GET /api/courses/admin -> plain array
+    const res = await axios.get(`${baseURL}/api/courses/admin`, config)
+
+    courses.value = (res.data || []).map(c => ({
+      id: c.id,
+      title: c.title,
+      price: Number(c.price) || 0,
+      enrollmentCount: c.enrollmentCount ?? 0,
+      isPublished: c.isPublished ?? false
+    }))
+  } catch (err) {
+    console.error('Failed to load courses list', err)
+    errorMessage.value = 'Failed to load courses.'
+  }
 }
 
 onMounted(loadCourses)
@@ -64,4 +91,5 @@ onMounted(loadCourses)
 .link{color:#f97316;text-decoration:none;font-size:0.8rem;}
 .link:hover{text-decoration:underline;}
 .empty{font-size:0.8rem;color:#6b7280;}
+.error{margin-top:0.5rem;color:#fca5a5;font-size:0.8rem;}
 </style>

@@ -21,8 +21,48 @@
       </div>
 
       <div class="field">
-        <label>Short Description</label>
-        <textarea v-model="form.summary" rows="3" />
+        <label>Short Description (summary)</label>
+        <textarea v-model="form.summary" rows="2" />
+      </div>
+
+      <div class="field">
+        <label>Full Course Description</label>
+        <textarea
+          v-model="form.description"
+          rows="4"
+          placeholder="Detailed description of what this course covers..."
+          required
+        />
+      </div>
+
+      <div class="field">
+        <label>Course syllabus (one item per line)</label>
+        <textarea
+          v-model="form.syllabus"
+          rows="4"
+          placeholder="Week 1: Introduction to phone components
+Week 2: Screen replacement techniques
+Week 3: Battery and charging port repair"
+        />
+      </div>
+
+      <div class="field">
+        <label>Duration</label>
+        <input v-model="form.duration" type="text" placeholder="4 weeks" />
+      </div>
+
+      <div class="field">
+        <label>Category</label>
+        <input v-model="form.category" type="text" placeholder="Phone Repair" />
+      </div>
+
+      <div class="field">
+        <label>Course image URL</label>
+        <input
+          v-model="form.image"
+          type="text"
+          placeholder="https://... or course-phone-basic.jpg"
+        />
       </div>
 
       <div class="field">
@@ -36,17 +76,34 @@
 
       <div class="field inline">
         <label>
-          <input v-model="form.published" type="checkbox" />
+          <input v-model="form.isPublished" type="checkbox" />
           <span>Published</span>
         </label>
       </div>
 
+      <div class="field">
+        <label>Modules (one per line)</label>
+        <textarea
+          v-model="modulesInput"
+          rows="4"
+          placeholder="Intro to tools
+Board-level basics
+Hands-on screen replacements"
+        />
+      </div>
+
       <div class="actions">
-        <button type="submit" class="btn primary">
-          {{ isEdit ? 'Update Course' : 'Create Course' }}
+        <button type="submit" class="btn primary" :disabled="isSubmitting">
+          {{ isSubmitting ? 'Saving...' : isEdit ? 'Update Course' : 'Create Course' }}
         </button>
         <RouterLink class="btn ghost" :to="{ name: 'AdminCourses' }">Cancel</RouterLink>
       </div>
+
+      <ul v-if="validationErrors.length" class="error-list">
+        <li v-for="(err, idx) in validationErrors" :key="idx">{{ err }}</li>
+      </ul>
+      <p v-else-if="errorMessage" class="error">{{ errorMessage }}</p>
+      <p v-if="successMessage" class="success">{{ successMessage }}</p>
     </form>
   </div>
 </template>
@@ -65,32 +122,109 @@ const form = ref({
   slug: '',
   price: 0,
   summary: '',
+  description: '',
+  syllabus: '',
   level: 'beginner',
-  published: false
+  duration: '',
+  category: '',
+  image: '',
+  isPublished: false,
+  modules: []
 })
+
+const modulesInput = ref('')
+const errorMessage = ref('')
+const successMessage = ref('')
+const validationErrors = ref([])
+const isSubmitting = ref(false)
 
 const isEdit = computed(() => !!route.params.id)
 
 onMounted(async () => {
   if (!isEdit.value) return
-  const res = await axios.get(`${baseURL}/api/admin/courses/${route.params.id}`)
-  form.value = {
-    title: res.data.title,
-    slug: res.data.slug,
-    price: res.data.price,
-    summary: res.data.summary,
-    level: res.data.level,
-    published: res.data.published
+
+  try {
+    const token = localStorage.getItem('token')
+    const config = token
+      ? { headers: { Authorization: `Bearer ${token}` } }
+      : {}
+
+    const { data } = await axios.get(
+      `${baseURL}/api/courses/${route.params.id}`,
+      config
+    )
+
+    const c = data.course || data
+
+    form.value = {
+      title: c.title ?? '',
+      slug: c.slug ?? '',
+      price: c.price ?? 0,
+      summary: c.summary ?? '',
+      description: c.description ?? '',
+      syllabus: c.syllabus ?? '',
+      level: c.level || 'beginner',
+      duration: c.duration || '',
+      category: c.category || '',
+      image: c.image || '',
+      isPublished: c.isPublished ?? false,
+      modules: c.modules || []
+    }
+    modulesInput.value = (c.modules || []).join('\n')
+  } catch (err) {
+    console.error('Failed to load course', err)
+    errorMessage.value = 'Failed to load course data.'
   }
 })
 
 const handleSubmit = async () => {
-  if (isEdit.value) {
-    await axios.put(`${baseURL}/api/admin/courses/${route.params.id}`, form.value)
-  } else {
-    await axios.post(`${baseURL}/api/admin/courses`, form.value)
+  errorMessage.value = ''
+  successMessage.value = ''
+  validationErrors.value = []
+  isSubmitting.value = true
+
+  form.value.modules = modulesInput.value
+    .split('\n')
+    .map(m => m.trim())
+    .filter(Boolean)
+
+  try {
+    const token = localStorage.getItem('token')
+    const config = token
+      ? { headers: { Authorization: `Bearer ${token}` } }
+      : {}
+
+    if (isEdit.value) {
+      await axios.put(
+        `${baseURL}/api/courses/admin/${route.params.id}`,
+        form.value,
+        config
+      )
+      successMessage.value = 'Course updated successfully.'
+    } else {
+      await axios.post(
+        `${baseURL}/api/courses/admin`,
+        form.value,
+        config
+      )
+      successMessage.value = 'Course created successfully.'
+    }
+
+    router.push({ name: 'AdminCourses' })
+  } catch (err) {
+    console.error('Course save failed', err)
+    const data = err.response?.data
+
+    if (data && Array.isArray(data.errors)) {
+      validationErrors.value = data.errors.map(e => e.msg || String(e))
+    } else if (data && data.message) {
+      errorMessage.value = data.message
+    } else {
+      errorMessage.value = 'Failed to save course.'
+    }
+  } finally {
+    isSubmitting.value = false
   }
-  router.push({ name: 'AdminCourses' })
 }
 </script>
 
@@ -108,4 +242,7 @@ const handleSubmit = async () => {
 .btn{border-radius:0.5rem;padding:0.5rem 1rem;font-size:0.82rem;cursor:pointer;border:1px solid transparent;text-decoration:none;}
 .primary{background:#f97316;color:#020617;border-color:#f97316;}
 .ghost{background:transparent;color:#e5e7eb;border-color:#4b5563;}
+.error{color:#fca5a5;font-size:0.8rem;margin-top:0.4rem;}
+.success{color:#6ee7b7;font-size:0.8rem;margin-top:0.4rem;}
+.error-list{margin-top:0.5rem;color:#fca5a5;font-size:0.8rem;padding-left:1.1rem;}
 </style>

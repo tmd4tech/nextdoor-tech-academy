@@ -23,7 +23,7 @@ import AdminDashboard from '../views/admin/AdminDashboard.vue'
 import AdminCourses from '../views/admin/AdminCourses.vue'
 import AdminCourseForm from '../views/admin/AdminCourseForm.vue'
 import AdminProducts from '../views/admin/AdminProducts.vue'
-import AdminProductForm from '../views/admin/AdminProductForm.vue' // NEW
+import AdminProductForm from '../views/admin/AdminProductForm.vue'
 import AdminOrders from '../views/admin/AdminOrders.vue'
 import AdminUsers from '../views/admin/AdminUsers.vue'
 import AdminBlog from '../views/admin/AdminBlog.vue'
@@ -95,19 +95,24 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true },
     children: [
       { path: '', name: 'AdminDashboard', component: AdminDashboard },
+
+      // course management (hits /api/courses/admin and /api/courses/admin/:courseId)
       { path: 'courses', name: 'AdminCourses', component: AdminCourses },
       { path: 'courses/new', name: 'AdminCourseCreate', component: AdminCourseForm },
       { path: 'courses/:id', name: 'AdminCourseEdit', component: AdminCourseForm },
 
+      // product management
       { path: 'products', name: 'AdminProducts', component: AdminProducts },
-      { path: 'products/new', name: 'AdminProductCreate', component: AdminProductForm }, // NEW
-      { path: 'products/:id', name: 'AdminProductEdit', component: AdminProductForm },   // NEW
+      { path: 'products/new', name: 'AdminProductCreate', component: AdminProductForm },
+      { path: 'products/:id', name: 'AdminProductEdit', component: AdminProductForm },
 
       { path: 'orders', name: 'AdminOrders', component: AdminOrders },
       { path: 'users', name: 'AdminUsers', component: AdminUsers },
+
       { path: 'blog', name: 'AdminBlog', component: AdminBlog },
       { path: 'blog/new', name: 'AdminBlogCreate', component: AdminBlogForm },
       { path: 'blog/:id', name: 'AdminBlogEdit', component: AdminBlogForm },
+
       { path: 'settings', name: 'AdminSettings', component: AdminSettings }
     ]
   }

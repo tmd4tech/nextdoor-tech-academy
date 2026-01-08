@@ -1,6 +1,6 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
-const { v4: uuidv4 } = require('uuid');
+const { DataTypes } = require('sequelize')
+const sequelize = require('../config/database')
+const { v4: uuidv4 } = require('uuid')
 
 const Order = sequelize.define('Order', {
   id: {
@@ -72,6 +72,14 @@ const Order = sequelize.define('Order', {
 }, {
   tableName: 'orders',
   timestamps: true,
-});
+})
 
-module.exports = Order;
+// associations
+Order.associate = (models) => {
+  Order.belongsTo(models.User, {
+    foreignKey: 'userId',
+    as: 'user',
+  })
+}
+
+module.exports = Order

@@ -1,5 +1,7 @@
+// src/stores/courseStore.js
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import axios from 'axios'
 
 export const useCourseStore = defineStore('course', () => {
   const courses = ref([
@@ -130,6 +132,9 @@ export const useCourseStore = defineStore('course', () => {
     }
   ])
 
+  const loading = ref(false)
+  const error = ref(null)
+
   const getCourseById = (id) => {
     return courses.value.find(c => c.id === parseInt(id))
   }
@@ -139,9 +144,49 @@ export const useCourseStore = defineStore('course', () => {
     return courses.value.filter(c => c.category === category)
   }
 
+  // optional: derived list for featured courses
+  const featuredCourses = computed(() => courses.value.slice(0, 3))
+
+  // fetch courses from backend (if you have an API)
+  const fetchCourses = async () => {
+    loading.value = true
+    error.value = null
+    try {
+      const res = await axios.get('/api/courses')
+      courses.value = res.data
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Failed to fetch courses'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // create a new course from the admin form
+  const createCourse = async (payload) => {
+    // payload can be simple: { title, price, level, duration, category, description, thumbnailUrl, modules }
+    loading.value = true
+    error.value = null
+    try {
+      const res = await axios.post('/api/courses', payload)
+      // push new course into state so UI updates immediately
+      courses.value.unshift(res.data)
+      return res.data
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Failed to create course'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     courses,
+    loading,
+    error,
+    featuredCourses,
     getCourseById,
-    getCoursesByCategory
+    getCoursesByCategory,
+    fetchCourses,
+    createCourse
   }
 })

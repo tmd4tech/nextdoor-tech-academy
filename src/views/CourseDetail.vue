@@ -1,10 +1,13 @@
 <template>
-  <div class="course-detail" v-if="course">
-    <div class="course-header" :style="{ backgroundImage: `url(https://via.placeholder.com/1200x300?text=${course.title})` }">
+  <div v-if="course" class="course-detail">
+    <div
+      class="course-header"
+      :style="{ backgroundImage: `url(https://via.placeholder.com/1200x300?text=${course.title})` }"
+    >
       <div class="container">
         <router-link to="/courses" class="back-link">← Back to Courses</router-link>
         <h1>{{ course.title }}</h1>
-        <p class="instructor">By {{ course.instructor }}</p>
+        <p class="instructor">By {{ course.instructorName }}</p>
       </div>
     </div>
 
@@ -18,11 +21,12 @@
 
           <section class="syllabus-section">
             <h2>What You'll Learn</h2>
-            <ul class="syllabus-list">
+            <ul v-if="course.syllabus && course.syllabus.length" class="syllabus-list">
               <li v-for="(item, index) in course.syllabus" :key="index">
                 {{ item }}
               </li>
             </ul>
+            <p v-else>No syllabus available yet.</p>
           </section>
 
           <section class="reviews-section">
@@ -32,7 +36,9 @@
                 <span class="reviewer-name">John Doe</span>
                 <span class="review-rating">⭐⭐⭐⭐⭐</span>
               </div>
-              <p class="review-text">This course is amazing! I learned so much and now I can repair phones confidently.</p>
+              <p class="review-text">
+                This course is amazing! I learned so much and now I can repair phones confidently.
+              </p>
             </div>
 
             <div class="review-card">
@@ -40,14 +46,20 @@
                 <span class="reviewer-name">Jane Smith</span>
                 <span class="review-rating">⭐⭐⭐⭐</span>
               </div>
-              <p class="review-text">Great instructor and comprehensive content. Highly recommended!</p>
+              <p class="review-text">
+                Great instructor and comprehensive content. Highly recommended!
+              </p>
             </div>
           </section>
         </main>
 
         <aside class="course-sidebar">
           <div class="enrollment-card card">
-            <img :src="`https://via.placeholder.com/300x200?text=${course.title}`" :alt="course.title" class="course-thumbnail">
+            <img
+              :src="course.image || `https://via.placeholder.com/300x200?text=${course.title}`"
+              :alt="course.title"
+              class="course-thumbnail"
+            />
 
             <div class="course-meta">
               <div class="meta-item">
@@ -56,11 +68,16 @@
               </div>
               <div class="meta-item">
                 <span class="label">Duration:</span>
-                <span class="value">{{ course.duration }}</span>
+                <span class="value">{{ course.duration || 'N/A' }}</span>
               </div>
               <div class="meta-item">
                 <span class="label">Level:</span>
-                <span class="value" :class="`level-${course.level.toLowerCase()}`">{{ course.level }}</span>
+                <span
+                  class="value"
+                  :class="`level-${(course.level || '').toLowerCase()}`"
+                >
+                  {{ course.level }}
+                </span>
               </div>
               <div class="meta-item">
                 <span class="label">Students:</span>
@@ -77,7 +94,11 @@
               <p>{{ course.prerequisites }}</p>
             </div>
 
-            <button class="btn btn-primary btn-block" @click="enrollNow" v-if="!isEnrolled">
+            <button
+              class="btn btn-primary btn-block"
+              @click="enrollNow"
+              v-if="!isEnrolled"
+            >
               Enroll Now
             </button>
             <button class="btn btn-secondary btn-block" disabled v-else>
@@ -100,30 +121,69 @@
   </div>
 
   <div v-else class="container">
-    <p>Course not found</p>
+    <p v-if="errorMessage">{{ errorMessage }}</p>
+    <p v-else>Loading course...</p>
     <router-link to="/courses" class="btn btn-primary">Back to Courses</router-link>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { useCourseStore } from '../stores/courseStore'
+import axios from 'axios'
 import { useAuthStore } from '../stores/authStore'
 import { useCartStore } from '../stores/cartStore'
 
 const route = useRoute()
-const courseStore = useCourseStore()
 const authStore = useAuthStore()
 const cartStore = useCartStore()
 
-const course = computed(() => {
-  return courseStore.getCourseById(route.params.id)
+const baseURL = import.meta.env.VITE_API_BASE_URL
+
+const course = ref(null)
+const loading = ref(false)
+const errorMessage = ref('')
+
+onMounted(async () => {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const { data } = await axios.get(
+      `${baseURL}/api/courses/${route.params.id}`
+    )
+
+    // backend: { success, course }
+    const c = data.course || data
+
+    course.value = {
+      id: c.id,
+      title: c.title,
+      description: c.description || '',
+      price: Number(c.price) || 0,
+      duration: c.duration || '',
+      level: c.level || 'beginner',
+      rating: Number(c.rating) || 0,
+      students: c.enrollmentCount ?? 0,
+      prerequisites: '', // adapt if your model has this later
+      syllabus: c.syllabus ? c.syllabus.split('\n') : [],
+      instructorName: c.instructor
+        ? `${c.instructor.firstName} ${c.instructor.lastName}`
+        : '',
+      image: c.image || ''
+    }
+  } catch (err) {
+    console.error('Failed to load course detail', err)
+    errorMessage.value = 'Course not found.'
+  } finally {
+    loading.value = false
+  }
 })
 
 const isEnrolled = computed(() => {
   if (!authStore.user || !course.value) return false
-  return authStore.user.enrolledCourses.includes(course.value.id)
+  const enrolled = authStore.user.enrolledCourses
+  return Array.isArray(enrolled) ? enrolled.includes(course.value.id) : false
 })
 
 const enrollNow = () => {

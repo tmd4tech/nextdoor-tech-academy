@@ -1,3 +1,4 @@
+// models/Lesson.js
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
@@ -16,33 +17,13 @@ const Lesson = sequelize.define('Lesson', {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  description: {
+  content: {
     type: DataTypes.TEXT,
     allowNull: true,
   },
   order: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-  },
-  contentType: {
-    type: DataTypes.ENUM('video', 'pdf', 'text', 'quiz'),
-    defaultValue: 'text',
-  },
-  videoUrl: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  pdfUrl: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  content: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-  duration: {
-    type: DataTypes.STRING,
-    allowNull: true,
+    defaultValue: 0,
   },
   isPublished: {
     type: DataTypes.BOOLEAN,
@@ -60,5 +41,13 @@ const Lesson = sequelize.define('Lesson', {
   tableName: 'lessons',
   timestamps: true,
 });
+
+// Associations
+Lesson.associate = (models) => {
+  Lesson.belongsTo(models.Course, {
+    foreignKey: 'courseId',
+    as: 'course',
+  });
+};
 
 module.exports = Lesson;

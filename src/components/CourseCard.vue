@@ -2,12 +2,12 @@
   <div class="course-card card">
     <div class="course-image">
       <img
-        :src="`https://via.placeholder.com/300x180?text=${course.title}`"
+        :src="course.image || `https://via.placeholder.com/300x180?text=${course.title}`"
         :alt="course.title"
       />
       <span
         class="level-badge"
-        :class="`level-${course.level.toLowerCase()}`"
+        :class="`level-${(course.level || '').toLowerCase()}`"
       >
         {{ course.level }}
       </span>
@@ -15,26 +15,27 @@
 
     <div class="course-info">
       <h3>{{ course.title }}</h3>
-      <p class="instructor">👨‍🏫 {{ course.instructor }}</p>
+      <p class="instructor" v-if="course.instructorName">
+        👨‍🏫 {{ course.instructorName }}
+      </p>
 
       <div class="course-meta">
-        <span>⏱️ {{ course.duration }}</span>
-        <span>👥 {{ course.students }} students</span>
+        <span v-if="course.duration">⏱️ {{ course.duration }}</span>
+        <span>👥 {{ course.enrollmentCount || 0 }} students</span>
       </div>
 
       <div class="rating">
-        <span class="stars">⭐ {{ course.rating }}</span>
+        <span class="stars">⭐ {{ course.rating || 0 }}</span>
       </div>
 
       <p class="description">
-        {{ course.description.substring(0, 80) }}...
+        {{ (course.description || '').substring(0, 80) }}...
       </p>
 
       <div class="course-footer">
         <span class="price">GHS {{ course.price }}</span>
 
         <div class="actions">
-          <!-- fixed path: /courses/:id -->
           <router-link
             :to="`/courses/${course.id}`"
             class="btn btn-outline-dark"
@@ -117,15 +118,9 @@ const enrollCourse = () => {
   color: white;
 }
 
-.level-beginner {
-  background-color: #22c55e;
-}
-.level-intermediate {
-  background-color: #f59e0b;
-}
-.level-advanced {
-  background-color: #ef4444;
-}
+.level-beginner { background-color: #22c55e; }
+.level-intermediate { background-color: #f59e0b; }
+.level-advanced { background-color: #ef4444; }
 
 /* content */
 .course-info {
@@ -191,7 +186,7 @@ const enrollCourse = () => {
   color: #f97316;
 }
 
-/* actions – slim buttons */
+/* actions */
 .actions {
   display: flex;
   flex-direction: column;
@@ -206,7 +201,7 @@ const enrollCourse = () => {
   font-weight: 600;
 }
 
-/* outline View button (flat) */
+/* outline View button */
 .btn-outline-dark {
   border-radius: 0.35rem;
   border: 1px solid #0f172a;
@@ -222,7 +217,7 @@ const enrollCourse = () => {
   color: #f9fafb;
 }
 
-/* flat orange Enroll button */
+/* Enroll button */
 .btn-enroll {
   border-radius: 0.35rem;
   border: none;

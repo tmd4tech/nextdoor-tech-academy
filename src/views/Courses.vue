@@ -22,36 +22,62 @@
           <div class="filter-group">
             <label>Level</label>
             <div class="checkbox-group">
-              <label><input type="checkbox" value="Beginner" v-model="selectedLevels"> Beginner</label>
-              <label><input type="checkbox" value="Intermediate" v-model="selectedLevels"> Intermediate</label>
-              <label><input type="checkbox" value="Advanced" v-model="selectedLevels"> Advanced</label>
+              <label>
+                <input type="checkbox" value="beginner" v-model="selectedLevels" />
+                Beginner
+              </label>
+              <label>
+                <input type="checkbox" value="intermediate" v-model="selectedLevels" />
+                Intermediate
+              </label>
+              <label>
+                <input type="checkbox" value="advanced" v-model="selectedLevels" />
+                Advanced
+              </label>
             </div>
           </div>
 
           <div class="filter-group">
             <label>Price Range</label>
-            <input type="number" v-model.number="minPrice" placeholder="Min (GHS)" class="price-input">
-            <input type="number" v-model.number="maxPrice" placeholder="Max (GHS)" class="price-input">
+            <input
+              type="number"
+              v-model.number="minPrice"
+              placeholder="Min (GHS)"
+              class="price-input"
+            />
+            <input
+              type="number"
+              v-model.number="maxPrice"
+              placeholder="Max (GHS)"
+              class="price-input"
+            />
           </div>
         </aside>
 
         <!-- Courses Grid -->
         <main class="courses-main">
           <div class="courses-header">
-            <p>{{ filteredCourses.length }} courses found</p>
+            <p v-if="!loading">{{ filteredCourses.length }} courses found</p>
+            <p v-else>Loading courses...</p>
           </div>
 
-          <div v-if="filteredCourses.length > 0" class="grid grid-3">
-            <CourseCard 
-              v-for="course in filteredCourses" 
+          <div v-if="errorMessage" class="no-courses">
+            <p>{{ errorMessage }}</p>
+          </div>
+
+          <div v-else-if="filteredCourses.length > 0" class="grid grid-3">
+            <CourseCard
+              v-for="course in filteredCourses"
               :key="course.id"
               :course="course"
             />
           </div>
 
-          <div v-else class="no-courses">
+          <div v-else-if="!loading" class="no-courses">
             <p>No courses found matching your filters</p>
-            <button @click="resetFilters" class="btn btn-primary">Reset Filters</button>
+            <button @click="resetFilters" class="btn btn-primary">
+              Reset Filters
+            </button>
           </div>
         </main>
       </div>
@@ -60,23 +86,68 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useCourseStore } from '../stores/courseStore'
+import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
 import CourseCard from '../components/CourseCard.vue'
 
-const courseStore = useCourseStore()
+const baseURL = import.meta.env.VITE_API_BASE_URL
+
+const courses = ref([])
+const pagination = ref(null)
+const loading = ref(false)
+const errorMessage = ref('')
 
 const selectedCategory = ref('All')
 const selectedLevels = ref([])
 const minPrice = ref(0)
 const maxPrice = ref(10000)
 
+const loadCourses = async (page = 1) => {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const res = await axios.get(`${baseURL}/api/courses`, {
+      params: { page, limit: 50 }
+    })
+
+    // normalize fields, including image
+    courses.value = (res.data.courses || []).map(c => ({
+      id: c.id,
+      title: c.title,
+      description: c.description || '',
+      price: Number(c.price) || 0,
+      duration: c.duration || '',
+      level: c.level || 'beginner',
+      category: c.category || '',
+      image: c.image || '',
+      rating: Number(c.rating) || 0,
+      enrollmentCount: c.enrollmentCount ?? 0
+    }))
+    pagination.value = res.data.pagination || null
+  } catch (err) {
+    console.error('Failed to load courses', err)
+    errorMessage.value = 'Failed to load courses.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => loadCourses())
+
 const filteredCourses = computed(() => {
-  return courseStore.courses.filter(course => {
-    const categoryMatch = selectedCategory.value === 'All' || course.category === selectedCategory.value
-    const levelMatch = selectedLevels.value.length === 0 || selectedLevels.value.includes(course.level)
-    const priceMatch = course.price >= minPrice.value && course.price <= maxPrice.value
-    
+  return courses.value.filter(course => {
+    const categoryMatch =
+      selectedCategory.value === 'All' ||
+      course.category === selectedCategory.value
+
+    const levelMatch =
+      selectedLevels.value.length === 0 ||
+      selectedLevels.value.includes(course.level)
+
+    const price = Number(course.price) || 0
+    const priceMatch = price >= minPrice.value && price <= maxPrice.value
+
     return categoryMatch && levelMatch && priceMatch
   })
 })

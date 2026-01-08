@@ -1,7 +1,7 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
-const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
+const { DataTypes } = require('sequelize')
+const sequelize = require('../config/database')
+const bcrypt = require('bcryptjs')
+const { v4: uuidv4 } = require('uuid')
 
 const User = sequelize.define('User', {
   id: {
@@ -12,24 +12,18 @@ const User = sequelize.define('User', {
   firstName: {
     type: DataTypes.STRING,
     allowNull: false,
-    validate: {
-      notEmpty: true,
-    },
+    validate: { notEmpty: true },
   },
   lastName: {
     type: DataTypes.STRING,
     allowNull: false,
-    validate: {
-      notEmpty: true,
-    },
+    validate: { notEmpty: true },
   },
   email: {
     type: DataTypes.STRING,
     allowNull: false,
     unique: true,
-    validate: {
-      isEmail: true,
-    },
+    validate: { isEmail: true },
   },
   phoneNumber: {
     type: DataTypes.STRING,
@@ -86,17 +80,32 @@ const User = sequelize.define('User', {
 }, {
   tableName: 'users',
   timestamps: true,
-});
+})
+
+// Associations
+User.associate = (models) => {
+  // one instructor user -> many courses
+  User.hasMany(models.Course, {
+    foreignKey: 'instructorId',
+    as: 'courses',
+  })
+
+  // one user -> many orders (for admin recent orders include)
+  User.hasMany(models.Order, {
+    foreignKey: 'userId',
+    as: 'orders',
+  })
+}
 
 // Hash password before saving
 User.beforeCreate(async (user) => {
-  const salt = await bcrypt.genSalt(10);
-  user.passwordHash = await bcrypt.hash(user.passwordHash, salt);
-});
+  const salt = await bcrypt.genSalt(10)
+  user.passwordHash = await bcrypt.hash(user.passwordHash, salt)
+})
 
 // Method to compare passwords
 User.prototype.comparePassword = async function (password) {
-  return bcrypt.compare(password, this.passwordHash);
-};
+  return bcrypt.compare(password, this.passwordHash)
+}
 
-module.exports = User;
+module.exports = User
