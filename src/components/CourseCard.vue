@@ -1,14 +1,22 @@
 <template>
   <div class="course-card card">
     <div class="course-image">
-      <img :src="`https://via.placeholder.com/300x180?text=${course.title}`" :alt="course.title">
-      <span class="level-badge" :class="`level-${course.level.toLowerCase()}`">{{ course.level }}</span>
+      <img
+        :src="`https://via.placeholder.com/300x180?text=${course.title}`"
+        :alt="course.title"
+      />
+      <span
+        class="level-badge"
+        :class="`level-${course.level.toLowerCase()}`"
+      >
+        {{ course.level }}
+      </span>
     </div>
 
     <div class="course-info">
       <h3>{{ course.title }}</h3>
       <p class="instructor">👨‍🏫 {{ course.instructor }}</p>
-      
+
       <div class="course-meta">
         <span>⏱️ {{ course.duration }}</span>
         <span>👥 {{ course.students }} students</span>
@@ -18,13 +26,24 @@
         <span class="stars">⭐ {{ course.rating }}</span>
       </div>
 
-      <p class="description">{{ course.description.substring(0, 80) }}...</p>
+      <p class="description">
+        {{ course.description.substring(0, 80) }}...
+      </p>
 
       <div class="course-footer">
         <span class="price">GHS {{ course.price }}</span>
+
         <div class="actions">
-          <router-link :to="`/course/${course.id}`" class="btn btn-outline">View</router-link>
-          <button class="btn btn-primary" @click="enrollCourse">Enroll Now</button>
+          <!-- fixed path: /courses/:id -->
+          <router-link
+            :to="`/courses/${course.id}`"
+            class="btn btn-outline-dark"
+          >
+            View
+          </router-link>
+          <button class="btn btn-enroll" @click="enrollCourse">
+            Enroll
+          </button>
         </div>
       </div>
     </div>
@@ -32,7 +51,6 @@
 </template>
 
 <script setup>
-import { defineProps } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useCartStore } from '../stores/cartStore'
 
@@ -67,104 +85,169 @@ const enrollCourse = () => {
   flex-direction: column;
 }
 
+/* image */
 .course-image {
   position: relative;
   width: 100%;
   height: 180px;
   overflow: hidden;
-  background-color: #f0f0f0;
+  background-color: #e5e7eb;
 }
 
 .course-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.25s ease;
 }
 
+.course-card:hover .course-image img {
+  transform: scale(1.04);
+}
+
+/* level badge */
 .level-badge {
   position: absolute;
   top: 10px;
   right: 10px;
-  padding: 0.35rem 0.75rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
   font-weight: 700;
   color: white;
 }
 
-.level-beginner { background-color: #10b981; }
-.level-intermediate { background-color: #f59e0b; }
-.level-advanced { background-color: #ef4444; }
+.level-beginner {
+  background-color: #22c55e;
+}
+.level-intermediate {
+  background-color: #f59e0b;
+}
+.level-advanced {
+  background-color: #ef4444;
+}
 
+/* content */
 .course-info {
-  padding: 1rem;
+  padding: 0.9rem;
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
 .course-info h3 {
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.02rem;
+  margin-bottom: 0.4rem;
   line-height: 1.3;
+  color: #111827;
 }
 
 .instructor {
-  font-size: 0.9rem;
-  color: var(--primary-color);
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+  margin-bottom: 0.45rem;
 }
 
 .course-meta {
   display: flex;
-  gap: 1rem;
-  font-size: 0.9rem;
+  gap: 0.75rem;
+  font-size: 0.8rem;
   color: #6b7280;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.35rem;
 }
 
 .rating {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.45rem;
 }
 
 .stars {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
 }
 
+/* description */
 .description {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: #6b7280;
-  margin-bottom: 1rem;
+  margin-bottom: 0.9rem;
   flex: 1;
   line-height: 1.4;
 }
 
+/* footer */
 .course-footer {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  gap: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color);
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--card-border);
 }
 
 .price {
-  font-size: 1.25rem;
+  font-size: 1.08rem;
   font-weight: 700;
-  color: var(--primary-color);
+  color: #f97316;
 }
 
+/* actions – slim buttons */
 .actions {
   display: flex;
-  gap: 0.5rem;
-  flex: 1;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 0 0 120px;
 }
 
 .actions .btn {
-  flex: 1;
-  padding: 0.5rem;
-  font-size: 0.9rem;
+  width: 100%;
+  padding: 0.42rem 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+/* outline View button (flat) */
+.btn-outline-dark {
+  border-radius: 0.35rem;
+  border: 1px solid #0f172a;
+  background: #ffffff;
+  color: #0f172a;
+  text-align: center;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.btn-outline-dark:hover {
+  background: #0f172a;
+  color: #f9fafb;
+}
+
+/* flat orange Enroll button */
+.btn-enroll {
+  border-radius: 0.35rem;
+  border: none;
+  background: #f97316;
+  color: #111827;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-enroll:hover {
+  background: #ea580c;
+  box-shadow: 0 7px 18px rgba(249, 115, 22, 0.45);
+}
+
+/* responsive */
+@media (max-width: 640px) {
+  .course-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .actions {
+    width: 100%;
+    flex: 1;
+  }
 }
 </style>

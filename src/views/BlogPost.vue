@@ -1,6 +1,15 @@
 <template>
   <div class="blog-post" v-if="post">
-    <div class="hero" :style="{ backgroundImage: `url(https://via.placeholder.com/1200x280?text=${encodeURIComponent(post.title)})` }">
+    <!-- hero -->
+    <div
+      class="hero"
+      :style="{
+        backgroundImage: `url(https://via.placeholder.com/1600x400?text=${encodeURIComponent(
+          post.title
+        )})`
+      }"
+    >
+      <div class="hero-overlay"></div>
       <div class="container hero-inner">
         <router-link to="/blog" class="back-link">← Back to Blog</router-link>
         <h1>{{ post.title }}</h1>
@@ -14,6 +23,7 @@
       </div>
     </div>
 
+    <!-- main content -->
     <div class="container content">
       <article class="card article">
         <p class="excerpt">{{ post.excerpt }}</p>
@@ -33,7 +43,7 @@
     </div>
   </div>
 
-  <div v-else class="container">
+  <div v-else class="container not-found">
     <p>Post not found.</p>
     <router-link to="/blog" class="btn btn-primary">Back to Blog</router-link>
   </div>
@@ -45,7 +55,6 @@ import { useRoute } from 'vue-router'
 
 const route = useRoute()
 
-// Seeded posts (aligns with your sample data)
 const blogPosts = [
   {
     id: 1,
@@ -53,7 +62,8 @@ const blogPosts = [
     category: 'Tech Tips',
     author: 'Kwame Mensah',
     date: '2025-10-15',
-    excerpt: 'Discover common smartphone issues users face daily and quick fixes you can try.',
+    excerpt:
+      'Discover common smartphone issues users face daily and quick fixes you can try.',
     body: [
       'Screen cracks, battery drain, and charging port faults are among the most common phone issues.',
       'Before visiting a repair shop, try basic steps like restarting, updating software, and cleaning ports.',
@@ -66,7 +76,8 @@ const blogPosts = [
     category: 'Product Reviews',
     author: 'Ama Adjei',
     date: '2025-10-20',
-    excerpt: 'A thorough comparison of Mac and Windows laptops to help students decide.',
+    excerpt:
+      'A thorough comparison of Mac and Windows laptops to help students decide.',
     body: [
       'Consider ecosystem, budget, and required apps when choosing a laptop.',
       'Windows offers broader hardware choices, while Mac excels in battery life and build quality.',
@@ -79,7 +90,8 @@ const blogPosts = [
     category: 'Repair Tutorials',
     author: 'Kofi Asante',
     date: '2025-10-25',
-    excerpt: 'Step-by-step guide for licensing, tooling, and marketing your repair venture.',
+    excerpt:
+      'Step-by-step guide for licensing, tooling, and marketing your repair venture.',
     body: [
       'Register your business, pick a good location, and invest in essential repair tools.',
       'Build trust with fair pricing, transparent diagnosis, and quality parts.',
@@ -90,25 +102,124 @@ const blogPosts = [
 
 const postId = computed(() => Number(route.params.id))
 const post = computed(() => blogPosts.find(p => p.id === postId.value))
-const related = computed(() => blogPosts.filter(p => p.id !== postId.value).slice(0, 3))
+const related = computed(() =>
+  blogPosts.filter(p => p.id !== postId.value).slice(0, 3)
+)
 </script>
 
 <style scoped>
-.hero { background-size: cover; background-position: center; position: relative; }
-.hero::before { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,.45); }
-.hero-inner { position: relative; padding: 2.5rem 0; color: #fff; }
-.back-link { color: #e2e8f0; text-decoration: none; font-weight: 600; }
-h1 { margin: .5rem 0; color: #fff; }
-.meta { opacity: .9; display: flex; gap: .5rem; flex-wrap: wrap; }
-.category { color: #a7f3d0; }
+/* hero */
+.hero {
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
 
-.content { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; padding: 1.5rem 0; }
-.article { line-height: 1.8; }
-.excerpt { font-style: italic; color: #6b7280; margin-bottom: 1rem; }
-.body p { margin: .85rem 0; }
-.sidebar h3 { margin-bottom: .75rem; }
-.related { list-style: none; padding: 0; }
-.related li { margin: .35rem 0; }
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(15, 23, 42, 0.6),
+    rgba(15, 23, 42, 0.9)
+  );
+}
 
-@media (max-width: 920px) { .content { grid-template-columns: 1fr; } }
+.hero-inner {
+  position: relative;
+  padding: 2.8rem 0 2.4rem;
+  color: #f9fafb;
+}
+
+.back-link {
+  color: #e5e7eb;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.hero-inner h1 {
+  margin: 0.8rem 0 0.4rem;
+  font-size: clamp(1.7rem, 3vw, 2.1rem);
+}
+
+.meta {
+  opacity: 0.95;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  color: #cbd5f5;
+}
+
+.category {
+  color: #f97316;
+}
+
+/* layout */
+.content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(260px, 0.9fr);
+  gap: 1.75rem;
+  padding: 1.8rem 0 2.5rem;
+}
+
+/* article */
+.article {
+  line-height: 1.8;
+}
+
+.excerpt {
+  font-style: italic;
+  color: #6b7280;
+  margin-bottom: 1.1rem;
+  font-size: 0.95rem;
+}
+
+.body p {
+  margin: 0.85rem 0;
+  color: #111827;
+}
+
+/* sidebar */
+.sidebar h3 {
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+}
+
+.related {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.related li {
+  margin: 0.35rem 0;
+}
+
+.related a {
+  font-size: 0.9rem;
+  color: #0f172a;
+  text-decoration: none;
+}
+
+.related a:hover {
+  color: #f97316;
+}
+
+/* not found */
+.not-found {
+  padding: 2.5rem 0;
+}
+
+/* responsive */
+@media (max-width: 920px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

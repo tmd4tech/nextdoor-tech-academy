@@ -25,19 +25,44 @@
           <div class="filter-group">
             <label>Brand</label>
             <div class="checkbox-group">
-              <label><input type="checkbox" value="Apple" v-model="filters.brand"> Apple</label>
-              <label><input type="checkbox" value="Samsung" v-model="filters.brand"> Samsung</label>
-              <label><input type="checkbox" value="HP" v-model="filters.brand"> HP</label>
-              <label><input type="checkbox" value="Dell" v-model="filters.brand"> Dell</label>
-              <label><input type="checkbox" value="Lenovo" v-model="filters.brand"> Lenovo</label>
+              <label>
+                <input type="checkbox" value="Apple" v-model="filters.brand" />
+                Apple
+              </label>
+              <label>
+                <input type="checkbox" value="Samsung" v-model="filters.brand" />
+                Samsung
+              </label>
+              <label>
+                <input type="checkbox" value="HP" v-model="filters.brand" />
+                HP
+              </label>
+              <label>
+                <input type="checkbox" value="Dell" v-model="filters.brand" />
+                Dell
+              </label>
+              <label>
+                <input type="checkbox" value="Lenovo" v-model="filters.brand" />
+                Lenovo
+              </label>
             </div>
           </div>
 
           <!-- Price Filter -->
           <div class="filter-group">
             <label>Price Range</label>
-            <input type="number" v-model.number="filters.minPrice" placeholder="Min" class="price-input">
-            <input type="number" v-model.number="filters.maxPrice" placeholder="Max" class="price-input">
+            <input
+              type="number"
+              v-model.number="filters.minPrice"
+              placeholder="Min"
+              class="price-input"
+            />
+            <input
+              type="number"
+              v-model.number="filters.maxPrice"
+              placeholder="Max"
+              class="price-input"
+            />
           </div>
 
           <!-- Sort -->
@@ -59,8 +84,8 @@
           </div>
 
           <div v-if="filteredAndSortedProducts.length > 0" class="grid grid-3">
-            <ProductCard 
-              v-for="product in filteredAndSortedProducts" 
+            <ProductCard
+              v-for="product in filteredAndSortedProducts"
               :key="product.id"
               :product="product"
             />
@@ -68,7 +93,9 @@
 
           <div v-else class="no-products">
             <p>No products found matching your filters</p>
-            <button @click="resetFilters" class="btn btn-primary">Reset Filters</button>
+            <button @click="resetFilters" class="btn btn-primary">
+              Reset Filters
+            </button>
           </div>
         </main>
       </div>
@@ -77,7 +104,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useProductStore } from '../stores/productStore'
 import ProductCard from '../components/ProductCard.vue'
 
@@ -87,10 +114,15 @@ const filters = ref({
   category: 'All',
   brand: [],
   minPrice: 0,
-  maxPrice: 100000
+  maxPrice: 100000,
 })
 
 const sortBy = ref('newest')
+
+// load products from backend when page mounts
+onMounted(() => {
+  productStore.fetchProducts()
+})
 
 const filteredProducts = computed(() => {
   return productStore.filterProducts(filters.value)
@@ -100,11 +132,17 @@ const filteredAndSortedProducts = computed(() => {
   let products = [...filteredProducts.value]
 
   if (sortBy.value === 'price-low') {
-    products.sort((a, b) => a.price - b.price)
+    products.sort(
+      (a, b) => Number(a.price) - Number(b.price),
+    )
   } else if (sortBy.value === 'price-high') {
-    products.sort((a, b) => b.price - a.price)
+    products.sort(
+      (a, b) => Number(b.price) - Number(a.price),
+    )
   } else if (sortBy.value === 'newest') {
-    products.reverse()
+    products.sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+    )
   }
 
   return products
@@ -115,7 +153,7 @@ const resetFilters = () => {
     category: 'All',
     brand: [],
     minPrice: 0,
-    maxPrice: 100000
+    maxPrice: 100000,
   }
   sortBy.value = 'newest'
 }

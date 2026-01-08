@@ -3,8 +3,8 @@
     <div class="login-container">
       <div class="login-card card">
         <div class="logo">
-          <span class="logo-icon">💻</span>
-          <h1>Nextdoor Tech</h1>
+          <!-- <span class="logo-icon">💻</span> -->
+          <h1>Nextdoor Tech Academy</h1>
         </div>
 
         <h2>Login to Your Account</h2>
@@ -12,22 +12,22 @@
         <form @submit.prevent="handleLogin">
           <div class="form-group">
             <label>Email Address</label>
-            <input 
-              type="email" 
-              v-model="email" 
+            <input
+              type="email"
+              v-model="email"
               placeholder="Enter your email"
               required
-            >
+            />
           </div>
 
           <div class="form-group">
             <label>Password</label>
-            <input 
-              type="password" 
-              v-model="password" 
+            <input
+              type="password"
+              v-model="password"
               placeholder="Enter your password"
               required
-            >
+            />
           </div>
 
           <button type="submit" class="btn btn-primary btn-block">
@@ -36,26 +36,32 @@
         </form>
 
         <p class="forgot-password">
-          <a href="#">Forgot your password?</a>
+          <a href="#" @click.prevent="handleForgotPassword">Forgot your password?</a>
         </p>
 
-        <div class="divider">Or</div>
+        <div class="divider">Or continue with</div>
 
         <div class="social-login">
-          <button class="social-btn">
-            <span class="social-icon">f</span> Facebook
-          </button>
-          <button class="social-btn">
-            <span class="social-icon">G</span> Google
-          </button>
+          <!-- GoogleLogin is registered globally by vue3-google-login -->
+          <GoogleLogin :callback="handleGoogleCallback">
+            <button type="button" class="social-btn social-google">
+              <!-- <span class="social-icon">G</span> -->
+              Google
+            </button>
+          </GoogleLogin>
         </div>
 
         <p class="signup-link">
-          Don't have an account? <router-link to="/register">Sign up here</router-link>
+          Don't have an account?
+          <router-link to="/register">Sign up here</router-link>
         </p>
 
         <div v-if="error" class="error-message">
           {{ error }}
+        </div>
+
+        <div v-if="info" class="info-message">
+          {{ info }}
         </div>
 
         <div class="demo-credentials">
@@ -72,6 +78,7 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import axios from 'axios'
 
 const router = useRouter()
 const route = useRoute()
@@ -80,20 +87,87 @@ const authStore = useAuthStore()
 const email = ref('')
 const password = ref('')
 const error = ref('')
+const info = ref('')
 
-const handleLogin = () => {
+const baseURL = import.meta.env.VITE_API_BASE_URL
+
+const redirectAfterLogin = () => {
+  const redirect = route.query.redirect || '/'
+  router.push(redirect)
+}
+
+const handleLogin = async () => {
   error.value = ''
+  info.value = ''
 
   if (!email.value || !password.value) {
     error.value = 'Please fill in all fields'
     return
   }
 
-  if (authStore.login(email.value, password.value)) {
-    const redirect = route.query.redirect || '/'
-    router.push(redirect)
-  } else {
-    error.value = 'Invalid email or password'
+  try {
+    const ok = await authStore.login(email.value, password.value)
+
+    console.log('AFTER LOGIN', {
+      ok,
+      isLoggedIn: authStore.isLoggedIn,
+      user: authStore.user
+    })
+
+    if (ok) {
+      redirectAfterLogin()
+    } else {
+      error.value = 'Invalid email or password'
+    }
+  } catch (err) {
+    console.error('Login failed:', err)
+    error.value = err.message || 'Login failed'
+  }
+}
+
+// callback from vue3-google-login, response.code is the auth code
+const handleGoogleCallback = async (response) => {
+  console.log('Google callback response:', response) // contains .code
+  error.value = ''
+  info.value = ''
+  try {
+    const ok = await authStore.loginWithGoogle(response.code)
+    console.log('AFTER GOOGLE LOGIN', {
+      ok,
+      isLoggedIn: authStore.isLoggedIn,
+      user: authStore.user
+    })
+    if (ok) {
+      redirectAfterLogin()
+    } else {
+      error.value = 'Google login failed'
+    }
+  } catch (err) {
+    console.error('Google login failed:', err)
+    error.value = err.message || 'Google login failed'
+  }
+}
+
+const handleForgotPassword = async () => {
+  error.value = ''
+  info.value = ''
+
+  const targetEmail =
+    email.value || window.prompt('Enter the email you registered with:')
+
+  if (!targetEmail) return
+
+  try {
+    await axios.post(`${baseURL}/api/auth/forgot-password`, {
+      email: targetEmail.trim()
+    })
+    info.value =
+      'If an account exists for that email, a reset link has been sent.'
+  } catch (err) {
+    console.error('Forgot password error:', err)
+    // keep message generic for security
+    info.value =
+      'If an account exists for that email, a reset link has been sent.'
   }
 }
 </script>
@@ -104,109 +178,120 @@ const handleLogin = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
-  padding: 1rem;
+  background: radial-gradient(circle at top, #1d4ed8 0, #020617 55%, #020617 100%);
+  padding: 1.5rem;
 }
 
 .login-container {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
 }
 
 .login-card {
-  padding: 2rem;
+  padding: 2.25rem 2rem 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.55);
 }
 
+/* logo */
 .logo {
   text-align: center;
   margin-bottom: 1.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
 }
 
 .logo-icon {
-  font-size: 2.5rem;
+  font-size: 2.4rem;
 }
 
 .logo h1 {
-  font-size: 1.5rem;
-  color: var(--primary-color);
+  font-size: 1.4rem;
+  color: #0f172a;
   margin: 0;
 }
 
+/* headings */
 .login-card h2 {
   text-align: center;
-  margin-bottom: 1.5rem;
-  font-size: 1.25rem;
+  margin-bottom: 1.4rem;
+  font-size: 1.2rem;
 }
 
+/* form */
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.2rem;
 }
 
 .form-group label {
   display: block;
   font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: var(--dark-color);
+  margin-bottom: 0.45rem;
+  color: #111827;
+  font-size: 0.9rem;
 }
 
 .form-group input {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  transition: border-color 0.3s ease;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.6rem;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.25);
 }
 
+/* main button */
 .btn-block {
   width: 100%;
-  margin-bottom: 1rem;
-  padding: 0.875rem;
-  font-size: 1rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.9rem;
+  padding: 0.8rem;
+  font-size: 0.95rem;
 }
 
+/* forgot password */
 .forgot-password {
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.2rem;
 }
 
 .forgot-password a {
-  color: var(--primary-color);
+  color: #f97316;
   text-decoration: none;
   font-weight: 600;
-  transition: color 0.3s ease;
+  font-size: 0.9rem;
 }
 
 .forgot-password a:hover {
-  color: var(--dark-color);
+  text-decoration: underline;
 }
 
+/* divider */
 .divider {
   text-align: center;
-  margin: 1.5rem 0;
+  margin: 1.1rem 0 0.9rem;
   position: relative;
   color: #9ca3af;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 0.8rem;
 }
 
 .divider::before,
 .divider::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
-  width: 48%;
+  width: 40%;
   height: 1px;
-  background-color: var(--border-color);
+  background-color: #e5e7eb;
 }
 
 .divider::before {
@@ -217,31 +302,40 @@ const handleLogin = () => {
   right: 0;
 }
 
+/* social login – only Google */
 .social-login {
   display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  justify-content: center;
+  margin-bottom: 1.4rem;
 }
 
 .social-btn {
   flex: 1;
-  padding: 0.75rem;
-  border: 1px solid var(--border-color);
-  background-color: white;
-  border-radius: 0.5rem;
+  padding: 0.7rem;
+  border-radius: 999px;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.3s ease;
+  font-size: 0.9rem;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  border: none;
 }
 
-.social-btn:hover {
-  background-color: var(--light-color);
-  border-color: var(--primary-color);
+/* Google button: white pill with subtle border */
+.social-google {
+  background-color: #ffffff;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.09);
+}
+
+.social-google:hover {
+  border-color: #f97316;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.16);
 }
 
 .social-icon {
@@ -249,13 +343,16 @@ const handleLogin = () => {
   font-size: 1rem;
 }
 
+/* signup link */
 .signup-link {
   text-align: center;
   color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 0.9rem;
 }
 
 .signup-link a {
-  color: var(--primary-color);
+  color: #f97316;
   text-decoration: none;
   font-weight: 600;
 }
@@ -264,34 +361,48 @@ const handleLogin = () => {
   text-decoration: underline;
 }
 
+/* error */
 .error-message {
   background-color: #fee2e2;
   color: #991b1b;
   padding: 0.75rem;
-  border-radius: 0.5rem;
+  border-radius: 0.6rem;
   margin-bottom: 1rem;
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   border-left: 4px solid #ef4444;
 }
 
+/* info */
+.info-message {
+  background-color: #e0f2fe;
+  color: #075985;
+  padding: 0.75rem;
+  border-radius: 0.6rem;
+  margin-bottom: 1rem;
+  font-size: 0.86rem;
+  border-left: 4px solid #0284c7;
+}
+
+/* demo credentials */
 .demo-credentials {
   background-color: #ecfdf5;
   border: 1px solid #d1fae5;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  margin-top: 1.5rem;
-  font-size: 0.85rem;
+  padding: 0.85rem;
+  border-radius: 0.6rem;
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
   color: #065f46;
 }
 
 .demo-credentials p {
-  margin: 0.25rem 0;
+  margin: 0.2rem 0;
 }
 
 .demo-credentials strong {
   color: #047857;
 }
 
+/* responsive */
 @media (max-width: 768px) {
   .login-container {
     max-width: 100%;

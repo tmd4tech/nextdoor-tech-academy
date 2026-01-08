@@ -5,7 +5,8 @@
 
       <div class="detail-layout">
         <div class="product-image">
-          <img :src="`https://via.placeholder.com/500x400?text=${product.name}`" :alt="product.name">
+          <img v-if="imageUrl" :src="imageUrl" :alt="product.name" />
+          <div v-else class="image-placeholder"></div>
         </div>
 
         <div class="product-details">
@@ -19,7 +20,10 @@
 
           <div class="price-section">
             <span class="price">GHS {{ product.price }}</span>
-            <span class="stock" :class="product.stock > 0 ? 'in-stock' : 'out-stock'">
+            <span
+              class="stock"
+              :class="product.stock > 0 ? 'in-stock' : 'out-stock'"
+            >
               {{ product.stock > 0 ? `${product.stock} In Stock` : 'Out of Stock' }}
             </span>
           </div>
@@ -40,13 +44,18 @@
               <label>Quantity:</label>
               <div class="quantity-control">
                 <button @click="quantity > 1 && quantity--">−</button>
-                <input type="number" v-model.number="quantity" min="1" :max="product.stock">
+                <input
+                  type="number"
+                  v-model.number="quantity"
+                  min="1"
+                  :max="product.stock"
+                />
                 <button @click="quantity < product.stock && quantity++">+</button>
               </div>
             </div>
 
-            <button 
-              class="btn btn-primary btn-large" 
+            <button
+              class="btn btn-primary btn-large"
               :disabled="product.stock === 0"
               @click="addToCart"
             >
@@ -66,8 +75,8 @@
       <div class="related-products">
         <h2>Related Products</h2>
         <div class="grid grid-4">
-          <ProductCard 
-            v-for="relatedProduct in relatedProducts" 
+          <ProductCard
+            v-for="relatedProduct in relatedProducts"
             :key="relatedProduct.id"
             :product="relatedProduct"
           />
@@ -92,6 +101,7 @@ import ProductCard from '../components/ProductCard.vue'
 const route = useRoute()
 const productStore = useProductStore()
 const cartStore = useCartStore()
+const baseURL = import.meta.env.VITE_API_BASE_URL
 
 const quantity = ref(1)
 
@@ -99,11 +109,21 @@ const product = computed(() => {
   return productStore.getProductById(route.params.id)
 })
 
+// build full URL for product.image
+const imageUrl = computed(() => {
+  if (!product.value || !product.value.image) return ''
+  const img = product.value.image
+  if (img.startsWith('http')) return img
+  return `${baseURL}${img}`
+})
+
 const relatedProducts = computed(() => {
   if (!product.value) return []
-  return productStore.products.filter(p => 
-    p.category === product.value.category && p.id !== product.value.id
-  ).slice(0, 4)
+  return productStore.products
+    .filter(
+      p => p.category === product.value.category && p.id !== product.value.id,
+    )
+    .slice(0, 4)
 })
 
 const addToCart = () => {
@@ -111,7 +131,7 @@ const addToCart = () => {
     for (let i = 0; i < quantity.value; i++) {
       cartStore.addItem({
         ...product.value,
-        type: 'product'
+        type: 'product',
       })
     }
     alert(`${quantity.value} x ${product.value.name} added to cart!`)
@@ -119,6 +139,37 @@ const addToCart = () => {
   }
 }
 </script>
+
+<style scoped>
+/* keep all your existing styles, plus placeholder box */
+.product-detail {
+  padding: 2rem 0;
+  min-height: calc(100vh - 200px);
+}
+
+.product-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f0f0f0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-placeholder {
+  width: 100%;
+  height: 100%;
+  background-color: #e5e7eb;
+}
+
+/* ...rest of your existing CSS unchanged... */
+</style>
 
 <style scoped>
 .product-detail {

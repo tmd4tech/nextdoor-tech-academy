@@ -6,7 +6,7 @@
         <div class="footer-section brand">
           <h3>Nextdoor Tech Academy</h3>
           <p>
-            Your one-stop destination for tech products and professional repair
+            Your one‑stop destination for tech products and professional repair
             training.
           </p>
           <div class="social-links">
@@ -50,7 +50,7 @@
           <p>📍 123 Tech Street, East Legon, Accra, Ghana</p>
           <p>📧 support@nextdoortechacademy.com</p>
           <p>📱 +233 24 123 4567</p>
-          <p>⏰ Mon-Fri: 9AM–6PM, Sat: 10AM–4PM</p>
+          <p>⏰ Mon‑Fri: 9AM–6PM, Sat: 10AM–4PM</p>
         </div>
       </div>
 
@@ -63,94 +63,119 @@
 </template>
 
 <script setup>
-// No JS needed for static footer
+// static footer
 </script>
 
 <style scoped>
 .footer {
-  background: linear-gradient(180deg, #0c0218, #140626);
-  color: #f9fafb;
+  background: #020617;
+  color: #e5e7eb;
   padding: 3rem 0 1.5rem;
   margin-top: 3rem;
-  font-family: "Poppins", sans-serif;
   position: relative;
 }
 
+/* subtle top border matching cards */
+.footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1200px;
+  max-width: 100%;
+  transform: translateX(-50%);
+  border-top: 1px solid rgba(148, 163, 184, 0.4);
+  pointer-events: none;
+}
+
+/* layout */
 .footer-content {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 2.5rem;
   margin-bottom: 2.5rem;
 }
 
 .footer-section h3,
 .footer-section h4 {
-  color: #e11d48; /* Vibrant red accent */
+  color: #f9fafb;
   margin-bottom: 1rem;
   font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.brand h3 {
+  font-size: 1.2rem;
 }
 
 .footer-section p {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   line-height: 1.7;
-  color: #d1d5db;
+  color: #9ca3af;
   margin-bottom: 0.6rem;
 }
 
 .footer-section ul {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 
 .footer-section ul li {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.6rem;
 }
 
 .footer-section a {
-  color: #d1d5db;
+  color: #cbd5f5;
   text-decoration: none;
-  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  transition: color 0.15s ease, transform 0.15s ease;
 }
 
 .footer-section a:hover {
-  color: #e11d48;
-  text-shadow: 0 0 5px rgba(225, 29, 72, 0.6);
+  color: #f97316; /* orange accent [web:10][web:142] */
+  transform: translateX(2px);
 }
 
+/* social icons */
 .social-links {
   display: flex;
-  gap: 1rem;
-  margin-top: 1.2rem;
+  gap: 0.7rem;
+  margin-top: 1.1rem;
 }
 
 .social-links a {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: rgba(225, 29, 72, 0.1);
-  border: 1px solid rgba(225, 29, 72, 0.2);
-  color: #e11d48;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  transition: all 0.3s ease;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  color: #e5e7eb;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .social-links a:hover {
-  background: #e11d48;
-  color: #fff;
-  transform: translateY(-3px);
+  background: #f97316;
+  color: #111827;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.7);
 }
 
+/* footer bottom */
 .footer-bottom {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(31, 41, 55, 0.9);
   padding-top: 1.2rem;
   text-align: center;
-  font-size: 0.9rem;
-  color: #9ca3af;
+  font-size: 0.85rem;
+  color: #6b7280;
 }
 
-/* Responsive adjustments */
+/* responsive */
 @media (max-width: 768px) {
   .footer {
     text-align: center;
@@ -162,20 +187,7 @@
 
   .footer-section h3,
   .footer-section h4 {
-    margin-top: 1.5rem;
+    margin-top: 0.5rem;
   }
-}
-
-/* Add floating soft glow effect */
-.footer::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle at 30% 50%,
-    rgba(225, 29, 72, 0.05),
-    transparent 70%
-  );
-  pointer-events: none;
 }
 </style>

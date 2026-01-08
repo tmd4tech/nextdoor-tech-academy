@@ -19,7 +19,6 @@
 </template>
 
 <script setup>
-import { defineProps } from 'vue'
 import { useCartStore } from '../stores/cartStore'
 
 const props = defineProps({

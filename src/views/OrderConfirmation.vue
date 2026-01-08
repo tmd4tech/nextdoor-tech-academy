@@ -13,19 +13,32 @@
             <li v-for="it in items" :key="`${it.type}-${it.id}`" class="item">
               <div class="left">
                 <div class="name">{{ it.name }}</div>
-                <div class="meta">{{ it.type === 'course' ? 'Course' : `${it.brand} • ${it.category}` }}</div>
+                <div class="meta">
+                  {{ it.type === 'course' ? 'Course' : `${it.brand} • ${it.category}` }}
+                </div>
               </div>
               <div class="right">
                 <span class="qty">× {{ it.quantity }}</span>
-                <span class="price">GHS {{ (it.price * it.quantity).toFixed(2) }}</span>
+                <span class="price">
+                  GHS {{ (it.price * it.quantity).toFixed(2) }}
+                </span>
               </div>
             </li>
           </ul>
 
           <div class="totals">
-            <div class="row"><span>Subtotal</span><span>GHS {{ subtotal.toFixed(2) }}</span></div>
-            <div class="row"><span>Tax (15%)</span><span>GHS {{ tax.toFixed(2) }}</span></div>
-            <div class="row total"><span>Total</span><span>GHS {{ total.toFixed(2) }}</span></div>
+            <div class="row">
+              <span>Subtotal</span>
+              <span>GHS {{ subtotal.toFixed(2) }}</span>
+            </div>
+            <div class="row">
+              <span>Tax (15%)</span>
+              <span>GHS {{ tax.toFixed(2) }}</span>
+            </div>
+            <div class="row total">
+              <span>Total</span>
+              <span>GHS {{ total.toFixed(2) }}</span>
+            </div>
           </div>
         </section>
 
@@ -38,8 +51,12 @@
           </ul>
 
           <div class="actions">
-            <router-link class="btn btn-primary" to="/dashboard">Go to Dashboard</router-link>
-            <router-link class="btn" to="/shop">Continue Shopping</router-link>
+            <router-link class="btn btn-primary" to="/dashboard">
+              Go to Dashboard
+            </router-link>
+            <router-link class="btn" to="/shop">
+              Continue Shopping
+            </router-link>
           </div>
         </aside>
       </div>
@@ -50,8 +67,10 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useCartStore } from '../stores/cartStore'
+import { useAuthStore } from '../stores/authStore'
 
 const cart = useCartStore()
+const authStore = useAuthStore()
 
 // Snapshot items & totals at confirmation time
 const items = ref([])
@@ -69,6 +88,15 @@ onMounted(() => {
   subtotal.value = cart.subtotal
   tax.value = cart.tax
   total.value = cart.total
+
+  // Update user enrolledCourses / purchasedProducts
+  items.value.forEach(it => {
+    if (it.type === 'course') {
+      authStore.enrollCourse(it.id)
+    } else if (it.type === 'product') {
+      authStore.purchaseProduct(it.id)
+    }
+  })
 
   // Clear the cart so reloading this page doesn't duplicate orders
   cart.clearCart()
